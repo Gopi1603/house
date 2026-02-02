@@ -4,133 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Management - Admin</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        .admin-container {
-            max-width: 1400px;
-            margin: 40px auto;
-            padding: 20px;
-        }
-        
-        .page-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 25px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .back-link {
-            color: white;
-            text-decoration: none;
-            padding: 8px 15px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 5px;
-            transition: background 0.3s;
-        }
-        
-        .back-link:hover {
-            background: rgba(255,255,255,0.3);
-        }
-        
-        .users-table {
-            width: 100%;
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .users-table table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .users-table th {
-            background: #f8f9fa;
-            padding: 15px;
-            text-align: left;
-            font-weight: 600;
-            color: #333;
-            border-bottom: 2px solid #dee2e6;
-        }
-        
-        .users-table td {
-            padding: 15px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        
-        .users-table tr:hover {
-            background: #f8f9fa;
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-        
-        .badge-admin {
-            background: #ffd700;
-            color: #333;
-        }
-        
-        .badge-user {
-            background: #e0e0e0;
-            color: #666;
-        }
-        
-        .btn-delete {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9em;
-            transition: background 0.3s;
-        }
-        
-        .btn-delete:hover {
-            background: #c82333;
-        }
-        
-        .btn-delete:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #999;
-        }
-        
-        .protected-text {
-            color: #999;
-            font-style: italic;
-            font-size: 0.9em;
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <!-- Navigation -->
-    <nav style="background: #333; padding: 15px 0; margin-bottom: 0;">
-        <div style="max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px;">
-            <a href="{{ url_for('index') }}" style="color: white; text-decoration: none; font-weight: bold; font-size: 1.2em;">
-                ⚡ Electricity Forecasting
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="{{ url_for('admin_dashboard') }}" class="navbar-brand">
+                <div class="navbar-logo">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <span>EnergyPredict</span>
             </a>
-            <div style="display: flex; gap: 20px; align-items: center;">
-                <a href="{{ url_for('index') }}" style="color: white; text-decoration: none;">Home</a>
-                <a href="{{ url_for('history') }}" style="color: white; text-decoration: none;">History</a>
-                <a href="{{ url_for('admin_dashboard') }}" style="color: #ffd700; text-decoration: none; font-weight: bold;">Admin Dashboard</a>
-                <span style="color: #ccc;">{{ session.email }}</span>
-                <a href="{{ url_for('logout') }}" style="color: white; text-decoration: none;">Logout</a>
+            
+            <button class="navbar-toggle" id="navbarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <div class="navbar-links" id="navbarLinks">
+                <a href="{{ url_for('admin_dashboard') }}" class="navbar-link">
+                    <i class="fas fa-chart-line"></i> Dashboard
+                </a>
+                <a href="{{ url_for('admin_users') }}" class="navbar-link active">
+                    <i class="fas fa-users"></i> Users
+                </a>
+                <a href="{{ url_for('admin_predictions') }}" class="navbar-link">
+                    <i class="fas fa-database"></i> Predictions
+                </a>
+                <a href="{{ url_for('admin_history') }}" class="navbar-link">
+                    <i class="fas fa-history"></i> History
+                </a>
+                <div class="navbar-user">
+                    <span class="navbar-email">{{ session.email }}</span>
+                    <span class="navbar-badge admin">Admin</span>
+                    <a href="{{ url_for('logout') }}" class="navbar-link">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
@@ -138,83 +50,146 @@
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            {% for category, message in messages %}
-                <div style="max-width: 1400px; margin: 20px auto; padding: 15px; background: {% if category == 'error' %}#f8d7da{% else %}#d4edda{% endif %}; border-radius: 5px; color: {% if category == 'error' %}#721c24{% else %}#155724{% endif %};">
-                    {{ message }}
-                </div>
-            {% endfor %}
+            <div class="flash-messages" style="position: relative; max-width: 1400px; margin: var(--spacing-lg) auto; padding: 0 var(--spacing-xl);">
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            </div>
         {% endif %}
     {% endwith %}
 
-    <div class="admin-container">
-        <!-- Page Header -->
-        <div class="page-header">
-            <div>
-                <h1 style="margin: 0;">👥 User Management</h1>
-                <p style="margin: 5px 0 0 0; opacity: 0.9;">View and manage registered users</p>
-            </div>
-            <a href="{{ url_for('admin_dashboard') }}" class="back-link">
-                ← Back to Dashboard
-            </a>
+    <div class="container">
+        <!-- Header -->
+        <div style="text-align: center; margin-bottom: var(--spacing-2xl);">
+            <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: var(--spacing-md); background: linear-gradient(135deg, var(--color-admin), var(--color-accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                <i class="fas fa-users"></i> User Management
+            </h1>
+            <p style="font-size: 1.125rem; color: var(--color-text-secondary);">View and manage registered users</p>
         </div>
 
-        <!-- Users Table -->
-        <div class="users-table">
+        <!-- Users Table Card -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">
+                        <i class="fas fa-list"></i> All Users
+                    </h2>
+                    <p class="card-subtitle">Total: {{ users|length }} user{{ 's' if users|length != 1 else '' }}</p>
+                </div>
+            </div>
+            
             {% if users %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Registered</th>
-                        <th>Predictions</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in users %}
-                    <tr>
-                        <td><strong>#{{ user.id }}</strong></td>
-                        <td>{{ user.email }}</td>
-                        <td>
-                            {% if user.is_admin %}
-                                <span class="badge badge-admin">ADMIN</span>
-                            {% else %}
-                                <span class="badge badge-user">USER</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ user.created_at[:10] if user.created_at else 'N/A' }}</td>
-                        <td style="text-align: center;">
-                            <strong>{{ user.prediction_count }}</strong>
-                        </td>
-                        <td>
-                            {% if user.is_admin %}
-                                <span class="protected-text">🔒 Protected</span>
-                            {% else %}
-                                <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.id) }}" 
-                                      style="display: inline;"
-                                      onsubmit="return confirm('Are you sure you want to delete user {{ user.email }}? This will also delete all {{ user.prediction_count }} prediction(s). This action cannot be undone.');">
-                                    <button type="submit" class="btn-delete">🗑️ Delete</button>
-                                </form>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--color-border);">
+                            <th style="padding: var(--spacing-md); text-align: left; font-weight: 600; color: var(--color-text-primary);">ID</th>
+                            <th style="padding: var(--spacing-md); text-align: left; font-weight: 600; color: var(--color-text-primary);">Email</th>
+                            <th style="padding: var(--spacing-md); text-align: left; font-weight: 600; color: var(--color-text-primary);">Role</th>
+                            <th style="padding: var(--spacing-md); text-align: left; font-weight: 600; color: var(--color-text-primary);">Registered</th>
+                            <th style="padding: var(--spacing-md); text-align: center; font-weight: 600; color: var(--color-text-primary);">Predictions</th>
+                            <th style="padding: var(--spacing-md); text-align: left; font-weight: 600; color: var(--color-text-primary);">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr style="border-bottom: 1px solid var(--color-border); transition: background 0.2s;">
+                            <td style="padding: var(--spacing-md); color: var(--color-text-primary); font-weight: 600;">
+                                <i class="fas fa-hashtag" style="color: var(--color-accent-primary); font-size: 0.75rem;"></i> {{ user.id }}
+                            </td>
+                            <td style="padding: var(--spacing-md); color: var(--color-text-secondary); font-family: 'JetBrains Mono', monospace; font-size: 0.875rem;">
+                                {{ user.email }}
+                            </td>
+                            <td style="padding: var(--spacing-md);">
+                                {% if user.is_admin %}
+                                    <span class="badge badge-admin">
+                                        <i class="fas fa-shield-alt"></i> ADMIN
+                                    </span>
+                                {% else %}
+                                    <span class="badge badge-info">
+                                        <i class="fas fa-user"></i> USER
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: var(--spacing-md); color: var(--color-text-secondary); font-family: 'JetBrains Mono', monospace; font-size: 0.875rem;">
+                                <i class="fas fa-calendar" style="margin-right: var(--spacing-xs);"></i>
+                                {{ user.created_at[:10] if user.created_at else 'N/A' }}
+                            </td>
+                            <td style="padding: var(--spacing-md); text-align: center;">
+                                <span style="color: var(--color-accent-primary); font-weight: 700; font-size: 1.125rem;">
+                                    {{ user.prediction_count }}
+                                </span>
+                            </td>
+                            <td style="padding: var(--spacing-md);">
+                                {% if user.is_admin %}
+                                    <span style="color: var(--color-text-tertiary); font-style: italic; font-size: 0.875rem;">
+                                        <i class="fas fa-lock"></i> Protected
+                                    </span>
+                                {% else %}
+                                    <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.id) }}" 
+                                          style="display: inline;"
+                                          onsubmit="return confirm('Are you sure you want to delete user {{ user.email }}? This will also delete all {{ user.prediction_count }} prediction(s). This action cannot be undone.');">
+                                        <button type="submit" class="btn btn-danger" style="font-size: 0.875rem;">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
             {% else %}
-            <div class="empty-state">
-                <h3>No users found</h3>
-                <p>No registered users in the system.</p>
+            <div style="text-align: center; padding: var(--spacing-3xl); color: var(--color-text-tertiary);">
+                <i class="fas fa-users" style="font-size: 3rem; margin-bottom: var(--spacing-lg); opacity: 0.3;"></i>
+                <h3 style="color: var(--color-text-secondary); margin-bottom: var(--spacing-sm);">No users found</h3>
+                <p style="font-size: 0.875rem;">No registered users in the system.</p>
             </div>
             {% endif %}
         </div>
 
-        <!-- Info Box -->
-        <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; margin-top: 20px; color: #856404;">
-            <strong>⚠️ Security Note:</strong> Admin users cannot be deleted through this interface. This prevents accidental removal of administrator accounts. Deleting a user will permanently remove all their predictions.
+        <!-- Security Warning -->
+        <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-left: 4px solid var(--color-warning); border-radius: var(--radius-lg); padding: var(--spacing-lg); margin-top: var(--spacing-xl);">
+            <div style="display: flex; gap: var(--spacing-md); align-items: start;">
+                <i class="fas fa-exclamation-triangle" style="color: var(--color-warning); font-size: 1.25rem; margin-top: 2px;"></i>
+                <div>
+                    <strong style="color: var(--color-warning); display: block; margin-bottom: var(--spacing-xs);">Security Note:</strong>
+                    <span style="color: var(--color-text-secondary); font-size: 0.875rem;">Admin users cannot be deleted through this interface. This prevents accidental removal of administrator accounts. Deleting a user will permanently remove all their predictions.</span>
+                </div>
+            </div>
         </div>
     </div>
+
+    <script>
+        // Mobile menu toggle
+        document.getElementById('navbarToggle')?.addEventListener('click', function() {
+            document.getElementById('navbarLinks').classList.toggle('active');
+        });
+
+        // Auto-hide flash messages
+        setTimeout(() => {
+            const flashes = document.querySelectorAll('.flash');
+            flashes.forEach(flash => {
+                flash.style.opacity = '0';
+                flash.style.transition = 'opacity 0.5s';
+                setTimeout(() => flash.remove(), 500);
+            });
+        }, 5000);
+
+        // Table row hover effect
+        const rows = document.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            row.addEventListener('mouseenter', function() {
+                this.style.background = 'var(--color-bg-tertiary)';
+            });
+            row.addEventListener('mouseleave', function() {
+                this.style.background = '';
+            });
+        });
+    </script>
 </body>
 </html>

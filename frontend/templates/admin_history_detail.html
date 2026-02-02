@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prediction Details - EnergyPredict</title>
+    <title>Prediction Details - Admin</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -12,7 +12,7 @@
     <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="navbar-container">
-            <a href="{{ url_for('index') }}" class="navbar-brand">
+            <a href="{{ url_for('admin_dashboard') }}" class="navbar-brand">
                 <div class="navbar-logo">
                     <i class="fas fa-bolt"></i>
                 </div>
@@ -24,17 +24,21 @@
             </button>
             
             <div class="navbar-links" id="navbarLinks">
-                <a href="{{ url_for('index') }}" class="navbar-link">
-                    <i class="fas fa-home"></i> Home
+                <a href="{{ url_for('admin_dashboard') }}" class="navbar-link">
+                    <i class="fas fa-chart-line"></i> Dashboard
                 </a>
-                <a href="{{ url_for('research') }}" class="navbar-link">
-                    <i class="fas fa-flask"></i> Research
+                <a href="{{ url_for('admin_users') }}" class="navbar-link">
+                    <i class="fas fa-users"></i> Users
                 </a>
-                <a href="{{ url_for('history') }}" class="navbar-link active">
+                <a href="{{ url_for('admin_predictions') }}" class="navbar-link">
+                    <i class="fas fa-database"></i> Predictions
+                </a>
+                <a href="{{ url_for('admin_history') }}" class="navbar-link active">
                     <i class="fas fa-history"></i> History
                 </a>
                 <div class="navbar-user">
-                    <span class="navbar-email">{{ user_email }}</span>
+                    <span class="navbar-email">{{ session.email }}</span>
+                    <span class="navbar-badge admin">Admin</span>
                     <a href="{{ url_for('logout') }}" class="navbar-link">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </a>
@@ -60,12 +64,34 @@
     <div class="container" style="max-width: 1000px;">
         <!-- Header -->
         <div style="text-align: center; margin-bottom: var(--spacing-2xl);">
-            <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: var(--spacing-md); background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+            <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: var(--spacing-md); background: linear-gradient(135deg, var(--color-admin), var(--color-accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
                 <i class="fas fa-file-alt"></i> Prediction Details
             </h1>
             <p style="font-size: 1.125rem; color: var(--color-text-secondary);">
-                Run ID: <strong style="color: var(--color-accent-primary);">#{{ run['id'] }}</strong> | {{ run['created_at'] }}
+                Run ID: <strong style="color: var(--color-admin);">#{{ run['id'] }}</strong> | {{ run['created_at'] }}
             </p>
+        </div>
+
+        <!-- User Info Card -->
+        <div class="card" style="margin-bottom: var(--spacing-xl);">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">
+                        <i class="fas fa-user"></i> User Information
+                    </h2>
+                    <p class="card-subtitle">Prediction made by this user</p>
+                </div>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: var(--spacing-lg); padding: var(--spacing-md) 0;">
+                <div style="width: 50px; height: 50px; background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary)); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-user" style="color: white; font-size: 1.25rem;"></i>
+                </div>
+                <div>
+                    <div style="font-size: 1.125rem; font-weight: 600; color: var(--color-text-primary);">{{ run['user_email'] }}</div>
+                    <div style="font-size: 0.875rem; color: var(--color-text-secondary);">User ID: {{ run['user_id'] }}</div>
+                </div>
+            </div>
         </div>
 
         <!-- Details Card -->
@@ -118,14 +144,14 @@
             {% if last24_data %}
             <div style="margin-bottom: var(--spacing-xl);">
                 <h3 style="color: var(--color-text-primary); font-weight: 600; margin-bottom: var(--spacing-md); display: flex; align-items: center; gap: var(--spacing-sm);">
-                    <i class="fas fa-chart-area" style="color: var(--color-accent-primary);"></i>
+                    <i class="fas fa-chart-area" style="color: var(--color-admin);"></i>
                     Historical Data (Last 24 Hours)
                 </h3>
                 <div style="background: var(--color-bg-tertiary); padding: var(--spacing-lg); border-radius: var(--radius-md); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; max-height: 200px; overflow-y: auto; color: var(--color-text-secondary); border: 1px solid var(--color-border);">
                     {% if last24_data|length > 10 %}
-<span style="color: var(--color-accent-primary);">First 5 values:</span> {{ last24_data[:5]|join(', ') }}
+<span style="color: var(--color-admin);">First 5 values:</span> {{ last24_data[:5]|join(', ') }}
 ...
-<span style="color: var(--color-accent-primary);">Last 5 values:</span> {{ last24_data[-5:]|join(', ') }}
+<span style="color: var(--color-admin);">Last 5 values:</span> {{ last24_data[-5:]|join(', ') }}
 
 <span style="color: var(--color-text-tertiary);">Total data points: {{ last24_data|length }}</span>
                     {% else %}
@@ -137,10 +163,17 @@
 
             <!-- Action Buttons -->
             <div style="display: flex; gap: var(--spacing-md); flex-wrap: wrap; padding-top: var(--spacing-lg); border-top: 1px solid var(--color-border);">
-                <a href="{{ url_for('download_csv', run_id=run['id']) }}" class="btn btn-success">
+                <a href="{{ url_for('admin_download_csv', run_id=run['id']) }}" class="btn btn-success">
                     <i class="fas fa-download"></i> Download Original CSV
                 </a>
-                <a href="{{ url_for('history') }}" class="btn btn-secondary">
+                <form method="POST" action="{{ url_for('admin_delete_prediction', prediction_id=run['id']) }}" 
+                      style="display: inline;"
+                      onsubmit="return confirm('Are you sure you want to delete prediction #{{ run['id'] }}? This action cannot be undone.');">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Delete Prediction
+                    </button>
+                </form>
+                <a href="{{ url_for('admin_history') }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Back to History
                 </a>
             </div>

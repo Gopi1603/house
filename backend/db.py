@@ -437,6 +437,90 @@ def get_all_predictions_admin(limit=100):
         return [dict(row) for row in cursor.fetchall()]
 
 
+def get_all_prediction_runs_admin(limit=100):
+    """
+    Get all prediction runs with user info (admin only).
+    
+    Args:
+        limit: Maximum number of runs to return
+    
+    Returns:
+        list of prediction dicts with user info
+    """
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT 
+                p.id,
+                p.user_id,
+                u.email as user_email,
+                p.created_at,
+                p.filename,
+                p.model_name,
+                p.predicted_power_kw,
+                p.csv_file_path,
+                p.csv_storage_type
+            FROM prediction_runs p
+            JOIN users u ON p.user_id = u.id
+            ORDER BY p.created_at DESC
+            LIMIT ?
+        ''', (limit,))
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def get_prediction_run_by_id_admin(run_id):
+    """
+    Get a specific prediction run by ID (admin only, no user restriction).
+    
+    Args:
+        run_id: Prediction run ID
+    
+    Returns:
+        dict-like Row object with user info, or None if not found
+    """
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT p.id, p.user_id, u.email as user_email, p.created_at, 
+                   p.filename, p.model_name, p.predicted_power_kw, 
+                   p.predicted_next_hour_kw, p.last24_json,
+                   p.csv_storage_type, p.csv_text, p.csv_file_path
+            FROM prediction_runs p
+            JOIN users u ON p.user_id = u.id
+            WHERE p.id = ?
+        ''', (run_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+def get_total_prediction_count_admin():
+    """
+    Get total number of predictions across all users.
+    
+    Returns:
+        Integer count
+    """
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) FROM prediction_runs')
+        result = cursor.fetchone()
+        return result[0] if result else 0
+
+
+def get_unique_users_with_predictions():
+    """
+    Get count of unique users who have made predictions.
+    
+    Returns:
+        Integer count
+    """
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(DISTINCT user_id) FROM prediction_runs')
+        result = cursor.fetchone()
+        return result[0] if result else 0
+
+
 def delete_user_admin(user_id):
     """
     Delete a user and all their predictions (admin only).

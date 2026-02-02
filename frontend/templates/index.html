@@ -3,298 +3,314 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Residential Electricity Consumption Predictor</title>
+    <title>Residential Electricity Predictor</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <style>
-        .navbar {
-            background: #2c3e50;
-            color: white;
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0;
-        }
-        .navbar h1 {
-            font-size: 20px;
-            margin: 0;
-        }
-        .navbar-links a {
-            color: white;
-            text-decoration: none;
-            margin-left: 20px;
-            padding: 8px 15px;
-            border-radius: 4px;
-            transition: background 0.3s;
-            font-size: 14px;
-        }
-        .navbar-links a:hover {
-            background: rgba(255,255,255,0.1);
-        }
-        .auth-notice {
-            background: #3498db;
-            color: white;
-            padding: 12px 30px;
-            text-align: center;
-            font-size: 14px;
-        }
-        .auth-notice a {
-            color: white;
-            font-weight: 600;
-            text-decoration: underline;
-        }
-        .flash-messages {
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 0 20px;
-        }
-        .flash {
-            padding: 12px 20px;
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-        .flash.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .flash.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .flash.warning {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-    </style>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <!-- Phase 2: Navigation Bar -->
-    <div class="navbar">
-        <h1>🏠 Electricity Predictor</h1>
-        <div class="navbar-links">
-            {% if logged_in %}
-                <span style="opacity: 0.8; margin-right: 15px;">{{ user_email }}</span>
-                <a href="{{ url_for('history') }}">History</a>
-                {% if is_admin %}
-                    <a href="{{ url_for('admin_dashboard') }}" style="background: rgba(255, 215, 0, 0.2);">🛡️ Admin</a>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="{{ url_for('index') }}" class="navbar-brand">
+                <div class="navbar-logo">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <span>EnergyPredict</span>
+            </a>
+            
+            <button class="navbar-toggle" id="navbarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <div class="navbar-links" id="navbarLinks">
+                {% if logged_in %}
+                    <a href="{{ url_for('index') }}" class="navbar-link active">
+                        <i class="fas fa-home"></i> Home
+                    </a>
+                    <a href="{{ url_for('research') }}" class="navbar-link">
+                        <i class="fas fa-flask"></i> Research
+                    </a>
+                    <a href="{{ url_for('history') }}" class="navbar-link">
+                        <i class="fas fa-history"></i> History
+                    </a>
+                    {% if is_admin %}
+                        <a href="{{ url_for('admin_dashboard') }}" class="navbar-link">
+                            <i class="fas fa-shield-alt"></i> Admin
+                        </a>
+                    {% endif %}
+                    <div class="navbar-user">
+                        <span class="navbar-email">{{ user_email }}</span>
+                        {% if is_admin %}
+                            <span class="navbar-badge admin">Admin</span>
+                        {% else %}
+                            <span class="navbar-badge user">User</span>
+                        {% endif %}
+                        <a href="{{ url_for('logout') }}" class="navbar-link">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                {% else %}
+                    <a href="{{ url_for('index') }}" class="navbar-link active">
+                        <i class="fas fa-home"></i> Home
+                    </a>
+                    <a href="{{ url_for('research') }}" class="navbar-link">
+                        <i class="fas fa-flask"></i> Research
+                    </a>
+                    <a href="{{ url_for('login') }}" class="navbar-link">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                    <a href="{{ url_for('register') }}" class="navbar-link">
+                        <i class="fas fa-user-plus"></i> Register
+                    </a>
                 {% endif %}
-                <a href="{{ url_for('logout') }}">Logout</a>
-            {% else %}
-                <a href="{{ url_for('login') }}">Login</a>
-                <a href="{{ url_for('register') }}">Register</a>
-            {% endif %}
+            </div>
         </div>
-    </div>
+    </nav>
 
-    <!-- Phase 2: Auth Notice for Guest Users -->
+    <!-- Info Banner for Guest Users -->
     {% if not logged_in %}
-    <div class="auth-notice">
-        💡 <a href="{{ url_for('login') }}">Log in</a> to save your prediction history
+    <div class="info-banner">
+        <i class="fas fa-lock"></i>
+        <a href="{{ url_for('login') }}">Log in</a> or <a href="{{ url_for('register') }}">Register</a> to make predictions and save your history
     </div>
     {% endif %}
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            <div class="flash-messages">
+            <div class="flash-messages" id="flashMessages">
                 {% for category, message in messages %}
-                    <div class="flash {{ category }}">{{ message }}</div>
+                    <div class="flash {{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                        <span>{{ message }}</span>
+                    </div>
                 {% endfor %}
             </div>
         {% endif %}
     {% endwith %}
 
+    <!-- Hero Section - Only for guests -->
+    {% if not logged_in %}
+    <section class="hero">
+        <h1 class="hero-title">Residential Electricity Consumption Predictor</h1>
+        <p class="hero-subtitle">CNN-BiLSTM-SA Neural Network Model</p>
+        <div class="hero-metrics">
+            <div class="hero-metric">
+                <i class="fas fa-chart-line"></i>
+                <span>RMSE: 0.465 kW</span>
+            </div>
+            <div class="hero-metric">
+                <i class="fas fa-crosshairs"></i>
+                <span>MAE: 0.328 kW</span>
+            </div>
+            <div class="hero-metric">
+                <i class="fas fa-percentage"></i>
+                <span>R²: 0.562</span>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
     <div class="container">
-        <header>
-            <h1>🏠 Residential Electricity Consumption Predictor</h1>
-            <p class="subtitle">CNN-BiLSTM-SA Neural Network Model</p>
-            <p class="model-metrics">Model Performance: RMSE: 0.465 kW | MAE: 0.328 kW | R²: 0.562</p>
-        </header>
-
-        <main>
-            <!-- Model Results Section -->
-            <div class="card model-results-card">
-                <h2>📊 Model Performance Metrics</h2>
-                <div class="metrics-grid">
-                    <div class="metric-box">
-                        <div class="metric-label">RMSE</div>
-                        <div class="metric-value" id="metricRMSE">--</div>
-                        <div class="metric-unit">kW</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-label">MAE</div>
-                        <div class="metric-value" id="metricMAE">--</div>
-                        <div class="metric-unit">kW</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-label">R² Score</div>
-                        <div class="metric-value" id="metricR2">--</div>
-                        <div class="metric-unit"></div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-label">Lookback Window</div>
-                        <div class="metric-value" id="metricLookback">--</div>
-                        <div class="metric-unit">hours</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-label">Prediction Horizon</div>
-                        <div class="metric-value" id="metricHorizon">--</div>
-                        <div class="metric-unit">hour</div>
-                    </div>
+        <!-- Prediction Upload Section -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">
+                        {% if logged_in %}
+                        <i class="fas fa-calculator"></i> Make Prediction
+                        {% else %}
+                        <i class="fas fa-lock"></i> Login Required
+                        {% endif %}
+                    </h2>
+                    <p class="card-subtitle">
+                        {% if logged_in %}
+                        Upload 24-hour historical data for next-hour prediction
+                        {% else %}
+                        Sign in to access the prediction feature
+                        {% endif %}
+                    </p>
                 </div>
             </div>
 
-            <div class="card">
-                <h2>Upload 24-Hour Historical Data</h2>
-                <p class="instruction">
-                    <strong>PRD Requirement:</strong> Model requires exactly <strong>24 hours</strong> of historical data for prediction.<br>
-                    Upload a CSV file with 24 rows (one per hour) containing the following columns:
-                </p>
-                
-                <div class="required-columns">
-                    <h3>Required CSV Columns:</h3>
-                    <ul>
-                        <li><code>Global_intensity</code> - Household average current (Amperes)</li>
-                        <li><code>Sub_metering_3</code> - Electric water heater & AC (Watt-hours)</li>
-                        <li><code>Voltage</code> - Supply voltage (Volts)</li>
-                        <li><code>Global_reactive_power</code> - Household reactive power (kilowatts)</li>
-                        <li><code>Sub_metering_2</code> - Laundry room appliances (Watt-hours)</li>
-                        <li><code>Global_active_power</code> - Historical active power consumption (kilowatts)</li>
-                    </ul>
-                </div>
-
-                <form id="predictionForm" enctype="multipart/form-data">
-                    <div class="upload-area">
-                        <input type="file" 
-                               id="csvFile" 
-                               name="file" 
-                               accept=".csv" 
-                               required>
-                        <label for="csvFile" class="upload-label">
-                            <span class="upload-icon">📁</span>
-                            <span id="fileName">Choose CSV File (24 rows required)</span>
-                        </label>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary">Predict Next Hour Consumption</button>
-                </form>
-
-                <div class="csv-example">
-                    <h3>CSV Format Example:</h3>
-                    <pre>Global_intensity,Sub_metering_3,Voltage,Global_reactive_power,Sub_metering_2,Global_active_power
-4.628,17.0,234.84,0.226,1.0,1.088
-4.588,17.0,234.35,0.224,1.0,1.080
-...
-(22 more rows)</pre>
-                    <div class="download-buttons">
-                        <a href="#" id="downloadSample" class="download-link">📥 Download Sample CSV (JavaScript)</a>
-                        <a href="/sample-csv" class="download-link download-link-server">🌐 Download Sample CSV (Server)</a>
-                    </div>
-                </div>
+            {% if logged_in %}
+            <div style="margin-bottom: var(--spacing-lg); padding: var(--spacing-lg); background: var(--color-bg-tertiary); border-radius: var(--radius-md); border-left: 4px solid var(--color-accent-primary);">
+                <h3 style="font-size: 0.875rem; font-weight: 600; margin-bottom: var(--spacing-md); color: var(--color-text-primary);">
+                    <i class="fas fa-info-circle"></i> Required CSV Columns (6 features):
+                </h3>
+                <ul style="font-size: 0.8125rem; color: var(--color-text-secondary); line-height: 1.8; padding-left: var(--spacing-lg);">
+                    <li><code style="color: var(--color-accent-primary); background: rgba(99, 102, 241, 0.1); padding: 2px 6px; border-radius: 3px;">Global_intensity</code> - Household average current (Amperes)</li>
+                    <li><code style="color: var(--color-accent-primary); background: rgba(99, 102, 241, 0.1); padding: 2px 6px; border-radius: 3px;">Sub_metering_3</code> - Electric water heater & AC (Watt-hours)</li>
+                    <li><code style="color: var(--color-accent-primary); background: rgba(99, 102, 241, 0.1); padding: 2px 6px; border-radius: 3px;">Voltage</code> - Supply voltage (Volts)</li>
+                    <li><code style="color: var(--color-accent-primary); background: rgba(99, 102, 241, 0.1); padding: 2px 6px; border-radius: 3px;">Global_reactive_power</code> - Household reactive power (kilowatts)</li>
+                    <li><code style="color: var(--color-accent-primary); background: rgba(99, 102, 241, 0.1); padding: 2px 6px; border-radius: 3px;">Sub_metering_2</code> - Laundry room appliances (Watt-hours)</li>
+                    <li><code style="color: var(--color-accent-primary); background: rgba(99, 102, 241, 0.1); padding: 2px 6px; border-radius: 3px;">Global_active_power</code> - Historical active power consumption (kilowatts)</li>
+                </ul>
             </div>
 
-            <div class="card result-card" id="resultCard" style="display: none;">
-                <h2>Prediction Result</h2>
-                <div class="result-content">
-                    <div class="result-value">
-                        <span id="predictionValue">--</span>
-                        <span class="unit">kW</span>
-                    </div>
-                    <p class="result-label">Predicted Next-Hour Active Power Consumption</p>
-                    
-                    <div class="historical-data">
-                        <h3>Last 24 Hours Historical Data with Prediction:</h3>
-                        <canvas id="historyChart"></canvas>
-                        <div class="stats">
-                            <div class="stat-item">
-                                <span class="stat-label">Average</span>
-                                <span class="stat-value" id="avgValue">--</span> kW
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Minimum</span>
-                                <span class="stat-value" id="minValue">--</span> kW
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Maximum</span>
-                                <span class="stat-value" id="maxValue">--</span> kW
-                            </div>
+            <form id="predictionForm" enctype="multipart/form-data">
+                <div class="upload-area" id="uploadArea">
+                    <input type="file" id="csvFile" name="file" accept=".csv" required class="upload-input">
+                    <label for="csvFile" style="cursor: pointer;">
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
                         </div>
+                        <div class="upload-label" id="uploadLabel">
+                            Drop CSV file here or click to browse
+                        </div>
+                        <div class="upload-hint">
+                            Must contain exactly 24 rows (hours) with 6 required columns
+                        </div>
+                    </label>
+                </div>
+                
+                <div style="margin-top: var(--spacing-lg); display: flex; gap: var(--spacing-md); flex-wrap: wrap;">
+                    <button type="submit" class="btn btn-primary" id="predictBtn">
+                        <i class="fas fa-calculator"></i>
+                        Predict Next Hour Consumption
+                    </button>
+                    <a href="/sample-csv" class="btn btn-secondary" download>
+                        <i class="fas fa-download"></i>
+                        Download Sample CSV
+                    </a>
+                </div>
+            </form>
+            {% else %}
+            <!-- Login Required Message -->
+            <div style="text-align: center; padding: var(--spacing-3xl);">
+                <div style="width: 80px; height: 80px; margin: 0 auto var(--spacing-xl); background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary)); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-lock" style="font-size: 2rem; color: white;"></i>
+                </div>
+                <h3 style="font-size: 1.5rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--spacing-md);">
+                    Authentication Required
+                </h3>
+                <p style="color: var(--color-text-secondary); margin-bottom: var(--spacing-xl); max-width: 400px; margin-left: auto; margin-right: auto;">
+                    Please log in or create an account to use the electricity consumption prediction feature and save your prediction history.
+                </p>
+                <div style="display: flex; gap: var(--spacing-md); justify-content: center; flex-wrap: wrap;">
+                    <a href="{{ url_for('login') }}" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> Log In
+                    </a>
+                    <a href="{{ url_for('register') }}" class="btn btn-secondary">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </a>
+                </div>
+                
+                <div style="margin-top: var(--spacing-2xl); padding-top: var(--spacing-xl); border-top: 1px solid var(--color-border);">
+                    <p style="font-size: 0.875rem; color: var(--color-text-muted); margin-bottom: var(--spacing-md);">
+                        Want to see the required data format?
+                    </p>
+                    <a href="/sample-csv" class="btn btn-secondary" style="font-size: 0.875rem;" download>
+                        <i class="fas fa-download"></i> Download Sample CSV
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if logged_in %}
+        <!-- Prediction Results -->
+        <div class="card" id="resultCard" style="display: none;">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-chart-bar"></i> Prediction Result
+                </h2>
+            </div>
+            <div style="text-align: center; padding: var(--spacing-xl);">
+                <div style="font-size: 3.5rem; font-weight: 700; color: var(--color-accent-primary); margin-bottom: var(--spacing-md);">
+                    <span id="predictionValue">--</span>
+                    <span style="font-size: 2rem; color: var(--color-text-secondary); margin-left: var(--spacing-sm);">kW</span>
+                </div>
+                <p style="font-size: 1.125rem; color: var(--color-text-secondary);">Predicted Next-Hour Active Power Consumption</p>
+            </div>
+            
+            <div style="padding: var(--spacing-xl); background: var(--color-bg-tertiary); border-radius: var(--radius-md); margin-top: var(--spacing-lg);">
+                <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: var(--spacing-lg); color: var(--color-text-primary);">
+                    <i class="fas fa-history"></i> Historical Data & Prediction
+                </h3>
+                <div style="background: white; padding: var(--spacing-md); border-radius: var(--radius-md);">
+                    <canvas id="historyChart"></canvas>
+                </div>
+                
+                <div class="stats-grid" style="margin-top: var(--spacing-lg);">
+                    <div class="stat-card">
+                        <div class="stat-label">Average</div>
+                        <div class="stat-value" style="font-size: 1.5rem;" id="avgValue">--</div>
+                        <div class="stat-unit">kW</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Minimum</div>
+                        <div class="stat-value" style="font-size: 1.5rem;" id="minValue">--</div>
+                        <div class="stat-unit">kW</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Maximum</div>
+                        <div class="stat-value" style="font-size: 1.5rem;" id="maxValue">--</div>
+                        <div class="stat-unit">kW</div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="card error-card" id="errorCard" style="display: none;">
-                <h2>Error</h2>
-                <p id="errorMessage"></p>
+        <!-- Error Display -->
+        <div class="card" id="errorCard" style="display: none; border-left: 4px solid var(--color-error);">
+            <div class="card-header">
+                <h2 class="card-title" style="color: var(--color-error);">
+                    <i class="fas fa-exclamation-triangle"></i> Error
+                </h2>
             </div>
+            <p id="errorMessage" style="color: var(--color-text-secondary);"></p>
+        </div>
+        {% endif %}
 
-            <!-- Thesis Figures Gallery -->
-            <div class="card thesis-gallery-card">
-                <h2>🎓 Thesis Figures & Visualizations</h2>
-                <p class="instruction">Research and analysis visualizations from model development phase</p>
-                <div class="gallery-grid" id="thesisGallery">
-                    <div class="gallery-item" data-img="Fig_Actual_vs_Pred_kW_First300.png">
-                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Actual_vs_Pred_kW_First300.png') }}" alt="Actual vs Predicted (First 300)">
-                        <p>Actual vs Predicted (First 300)</p>
-                    </div>
-                    <div class="gallery-item" data-img="Fig_Model_Comparison_Table.png">
-                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Model_Comparison_Table.png') }}" alt="Model Comparison Table">
-                        <p>Model Comparison Table</p>
-                    </div>
-                    <div class="gallery-item" data-img="Fig_Feature_MI_Ranking.png">
-                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Feature_MI_Ranking.png') }}" alt="Feature MI Ranking">
-                        <p>Feature MI Ranking</p>
-                    </div>
-                    <div class="gallery-item" data-img="Fig_Scatter_Pred_vs_Actual_kW.png">
-                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Scatter_Pred_vs_Actual_kW.png') }}" alt="Scatter: Predicted vs Actual">
-                        <p>Scatter: Predicted vs Actual</p>
-                    </div>
-                    <div class="gallery-item" data-img="Fig_Residuals_Hist_kW.png">
-                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Residuals_Hist_kW.png') }}" alt="Residuals Histogram">
-                        <p>Residuals Histogram</p>
-                    </div>
-                    <div class="gallery-item" data-img="Fig_Compare_RMSE_kW.png">
-                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Compare_RMSE_kW.png') }}" alt="RMSE Comparison">
-                        <p>RMSE Comparison</p>
-                    </div>
-                    <div class="gallery-item" data-img="Fig_Compare_MAE_kW.png">
-                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Compare_MAE_kW.png') }}" alt="MAE Comparison">
-                        <p>MAE Comparison</p>
-                    </div>
-                    <div class="gallery-item" data-img="Fig_Compare_R2_kW.png">
-                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Compare_R2_kW.png') }}" alt="R² Comparison">
-                        <p>R² Comparison</p>
-                    </div>
-                    <div class="gallery-item" data-img="Fig_Loss_CNN_BiLSTM_SA.png">
-                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Loss_CNN_BiLSTM_SA.png') }}" alt="Loss: CNN-BiLSTM-SA">
-                        <p>Loss: CNN-BiLSTM-SA</p>
-                    </div>
-                    <div class="gallery-item" data-img="Fig_Residuals_Time_kW.png">
-                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Residuals_Time_kW.png') }}" alt="Residuals Over Time">
-                        <p>Residuals Over Time</p>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <footer>
-            <p>Powered by CNN-BiLSTM with Self-Attention Mechanism</p>
-            <p class="note">Dataset: UCI Individual Household Electric Power Consumption (2006-2010)</p>
-            <p class="note"><strong>24-Hour Lookback Window Required</strong> (PRD Section 11)</p>
-        </footer>
+        <!-- Research Link Card -->
+        <div class="card" style="text-align: center; padding: var(--spacing-2xl);">
+            <i class="fas fa-flask" style="font-size: 3rem; color: var(--color-accent-primary); margin-bottom: var(--spacing-lg);"></i>
+            <h2 style="color: var(--color-text-primary); margin-bottom: var(--spacing-md);">Research Visualizations</h2>
+            <p style="color: var(--color-text-secondary); margin-bottom: var(--spacing-xl); max-width: 500px; margin-left: auto; margin-right: auto;">
+                Explore detailed model analysis, performance comparisons, and thesis research figures
+            </p>
+            <a href="{{ url_for('research') }}" class="btn btn-primary" style="display: inline-flex;">
+                <i class="fas fa-arrow-right"></i> View Research
+            </a>
+        </div>
     </div>
 
     <!-- Image Modal -->
-    <div id="imageModal" class="modal">
-        <span class="modal-close">&times;</span>
-        <img class="modal-content" id="modalImage">
-        <div id="modalCaption"></div>
+    <div class="modal" id="imageModal">
+        <button class="modal-close" id="modalClose">
+            <i class="fas fa-times"></i>
+        </button>
+        <img src="" alt="" class="modal-content" id="modalImage">
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div>
+            <div class="loading-spinner"></div>
+            <p style="margin-top: var(--spacing-lg); color: var(--color-text-secondary); text-align: center;">Processing prediction...</p>
+        </div>
     </div>
 
     <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script>
+        // Mobile menu toggle
+        document.getElementById('navbarToggle')?.addEventListener('click', function() {
+            document.getElementById('navbarLinks').classList.toggle('active');
+        });
+
+        // Auto-hide flash messages after 5 seconds
+        setTimeout(() => {
+            const flashMessages = document.getElementById('flashMessages');
+            if (flashMessages) {
+                flashMessages.style.opacity = '0';
+                flashMessages.style.transition = 'opacity 0.5s';
+                setTimeout(() => flashMessages.remove(), 500);
+            }
+        }, 5000);
+    </script>
 </body>
 </html>

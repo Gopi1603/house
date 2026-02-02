@@ -3,199 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prediction History - Electricity Predictor</title>
+    <title>My History - EnergyPredict</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        .history-container {
-            max-width: 1000px;
-            margin: 30px auto;
-            padding: 20px;
-        }
-        .navbar {
-            background: #2c3e50;
-            color: white;
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-        .navbar h1 {
-            font-size: 20px;
-            margin: 0;
-        }
-        .navbar-links a {
-            color: white;
-            text-decoration: none;
-            margin-left: 20px;
-            padding: 8px 15px;
-            border-radius: 4px;
-            transition: background 0.3s;
-        }
-        .navbar-links a:hover {
-            background: rgba(255,255,255,0.1);
-        }
-        .history-header {
-            margin-bottom: 30px;
-        }
-        .history-header h2 {
-            color: #2c3e50;
-            margin-bottom: 10px;
-        }
-        .history-stats {
-            color: #7f8c8d;
-            font-size: 14px;
-        }
-        .history-table {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        thead {
-            background: #34495e;
-            color: white;
-        }
-        th {
-            padding: 15px;
-            text-align: left;
-            font-weight: 500;
-        }
-        td {
-            padding: 15px;
-            border-bottom: 1px solid #ecf0f1;
-        }
-        tbody tr:hover {
-            background: #f8f9fa;
-        }
-        tbody tr:last-child td {
-            border-bottom: none;
-        }
-        .prediction-value {
-            font-weight: 600;
-            color: #27ae60;
-        }
-        .view-btn {
-            padding: 6px 12px;
-            background: #3498db;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            font-size: 13px;
-            transition: background 0.3s;
-        }
-        .view-btn:hover {
-            background: #2980b9;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #7f8c8d;
-        }
-        .empty-state h3 {
-            margin-bottom: 15px;
-        }
-        .empty-state a {
-            color: #3498db;
-            text-decoration: none;
-        }
-        .flash-messages {
-            margin-bottom: 20px;
-        }
-        .flash {
-            padding: 12px;
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-        .flash.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .flash.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .flash.warning {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="navbar">
-        <h1>🏠 Electricity Predictor</h1>
-        <div class="navbar-links">
-            <span style="opacity: 0.8; margin-right: 15px;">{{ user_email }}</span>
-            <a href="{{ url_for('index') }}">Home</a>
-            <a href="{{ url_for('history') }}">History</a>
-            {% if session.is_admin %}
-                <a href="{{ url_for('admin_dashboard') }}" style="background: rgba(255, 215, 0, 0.2);">🛡️ Admin</a>
-            {% endif %}
-            <a href="{{ url_for('logout') }}">Logout</a>
-        </div>
-    </div>
-
-    <div class="history-container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="flash {{ category }}">{{ message }}</div>
-                    {% endfor %}
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="{{ url_for('index') }}" class="navbar-brand">
+                <div class="navbar-logo">
+                    <i class="fas fa-bolt"></i>
                 </div>
-            {% endif %}
-        {% endwith %}
-
-        <div class="history-header">
-            <h2>📊 Your Prediction History</h2>
-            <div class="history-stats">
-                Total predictions: <strong>{{ total_count }}</strong>
+                <span>EnergyPredict</span>
+            </a>
+            
+            <button class="navbar-toggle" id="navbarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <div class="navbar-links" id="navbarLinks">
+                <a href="{{ url_for('index') }}" class="navbar-link">
+                    <i class="fas fa-home"></i> Home
+                </a>
+                <a href="{{ url_for('research') }}" class="navbar-link">
+                    <i class="fas fa-flask"></i> Research
+                </a>
+                <a href="{{ url_for('history') }}" class="navbar-link active">
+                    <i class="fas fa-history"></i> History
+                </a>
+                <div class="navbar-user">
+                    <span class="navbar-email">{{ user_email }}</span>
+                    <a href="{{ url_for('logout') }}" class="navbar-link">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
             </div>
         </div>
+    </nav>
 
-        {% if runs %}
-            <div class="history-table">
-                <table>
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages" style="position: relative; max-width: 1200px; margin: var(--spacing-lg) auto; padding: 0 var(--spacing-xl);">
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="container" style="max-width: 1200px;">
+        <!-- Header -->
+        <div style="text-align: center; margin-bottom: var(--spacing-2xl);">
+            <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: var(--spacing-md); background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                <i class="fas fa-history"></i> Prediction History
+            </h1>
+            <p style="font-size: 1.125rem; color: var(--color-text-secondary);">
+                Total predictions: <strong style="color: var(--color-accent-primary);">{{ total_count }}</strong>
+            </p>
+        </div>
+
+        <!-- History Table Card -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">
+                        <i class="fas fa-list"></i> Your Predictions
+                    </h2>
+                    <p class="card-subtitle">View and manage your prediction history</p>
+                </div>
+            </div>
+            
+            {% if runs %}
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
                     <thead>
-                        <tr>
-                            <th>Date & Time</th>
-                            <th>Filename</th>
-                            <th>Model</th>
-                            <th>Predicted Power</th>
-                            <th>Actions</th>
+                        <tr style="border-bottom: 2px solid var(--color-border);">
+                            <th style="padding: var(--spacing-md); text-align: left; font-weight: 600; color: var(--color-text-primary);">Date & Time</th>
+                            <th style="padding: var(--spacing-md); text-align: left; font-weight: 600; color: var(--color-text-primary);">Filename</th>
+                            <th style="padding: var(--spacing-md); text-align: left; font-weight: 600; color: var(--color-text-primary);">Model</th>
+                            <th style="padding: var(--spacing-md); text-align: left; font-weight: 600; color: var(--color-text-primary);">Predicted Power</th>
+                            <th style="padding: var(--spacing-md); text-align: left; font-weight: 600; color: var(--color-text-primary);">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for run in runs %}
-                        <tr>
-                            <td>{{ run['created_at'] }}</td>
-                            <td>{{ run['filename'] }}</td>
-                            <td>{{ run['model_name'] }}</td>
-                            <td class="prediction-value">{{ "%.3f"|format(run['predicted_power_kw']) }} kW</td>
-                            <td>
-                                <a href="{{ url_for('history_detail', run_id=run['id']) }}" class="view-btn">View Details</a>
+                        <tr style="border-bottom: 1px solid var(--color-border); transition: background 0.2s;">
+                            <td style="padding: var(--spacing-md); color: var(--color-text-secondary); font-family: 'JetBrains Mono', monospace; font-size: 0.875rem;">
+                                <i class="fas fa-clock" style="margin-right: var(--spacing-xs); color: var(--color-accent-primary);"></i>
+                                {{ run['created_at'] }}
+                            </td>
+                            <td style="padding: var(--spacing-md); color: var(--color-text-tertiary); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                <i class="fas fa-file-csv" style="margin-right: var(--spacing-xs);"></i>
+                                {{ run['filename'] }}
+                            </td>
+                            <td style="padding: var(--spacing-md); color: var(--color-text-secondary); font-size: 0.875rem;">
+                                {{ run['model_name'] }}
+                            </td>
+                            <td style="padding: var(--spacing-md);">
+                                <span style="color: var(--color-success); font-weight: 700; font-size: 1rem; font-family: 'JetBrains Mono', monospace;">
+                                    <i class="fas fa-bolt" style="font-size: 0.875rem; margin-right: var(--spacing-xs);"></i>
+                                    {{ "%.3f"|format(run['predicted_power_kw']) }} kW
+                                </span>
+                            </td>
+                            <td style="padding: var(--spacing-md);">
+                                <a href="{{ url_for('history_detail', run_id=run['id']) }}" class="btn btn-primary" style="font-size: 0.875rem;">
+                                    <i class="fas fa-eye"></i> View Details
+                                </a>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-        {% else %}
-            <div class="history-table">
-                <div class="empty-state">
-                    <h3>No predictions yet</h3>
-                    <p>Make your first prediction to see it here!</p>
-                    <p><a href="{{ url_for('index') }}">Go to Predictor →</a></p>
-                </div>
+            {% else %}
+            <div style="text-align: center; padding: var(--spacing-3xl); color: var(--color-text-tertiary);">
+                <i class="fas fa-history" style="font-size: 3rem; margin-bottom: var(--spacing-lg); opacity: 0.3;"></i>
+                <h3 style="color: var(--color-text-secondary); margin-bottom: var(--spacing-sm);">No predictions yet</h3>
+                <p style="font-size: 0.875rem; margin-bottom: var(--spacing-lg);">Make your first prediction to see it here!</p>
+                <a href="{{ url_for('index') }}" class="btn btn-primary">
+                    <i class="fas fa-arrow-right"></i> Go to Predictor
+                </a>
             </div>
-        {% endif %}
+            {% endif %}
+        </div>
     </div>
+
+    <script>
+        // Mobile menu toggle
+        document.getElementById('navbarToggle')?.addEventListener('click', function() {
+            document.getElementById('navbarLinks').classList.toggle('active');
+        });
+
+        // Auto-hide flash messages
+        setTimeout(() => {
+            const flashes = document.querySelectorAll('.flash');
+            flashes.forEach(flash => {
+                flash.style.opacity = '0';
+                flash.style.transition = 'opacity 0.5s';
+                setTimeout(() => flash.remove(), 500);
+            });
+        }, 5000);
+
+        // Table row hover effect
+        const rows = document.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            row.addEventListener('mouseenter', function() {
+                this.style.background = 'var(--color-bg-tertiary)';
+            });
+            row.addEventListener('mouseleave', function() {
+                this.style.background = '';
+            });
+        });
+    </script>
 </body>
 </html>

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research Visualizations - EnergyPredict</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="{{ url_for('index') }}" class="navbar-brand">
+                <div class="navbar-logo">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <span>EnergyPredict</span>
+            </a>
+            
+            <button class="navbar-toggle" id="navbarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <div class="navbar-links" id="navbarLinks">
+                <a href="{{ url_for('index') }}" class="navbar-link">
+                    <i class="fas fa-home"></i> Home
+                </a>
+                <a href="{{ url_for('research') }}" class="navbar-link active">
+                    <i class="fas fa-flask"></i> Research
+                </a>
+                {% if logged_in %}
+                    <a href="{{ url_for('history') }}" class="navbar-link">
+                        <i class="fas fa-history"></i> History
+                    </a>
+                    {% if is_admin %}
+                        <a href="{{ url_for('admin_dashboard') }}" class="navbar-link">
+                            <i class="fas fa-shield-alt"></i> Admin
+                        </a>
+                    {% endif %}
+                    <div class="navbar-user">
+                        <span class="navbar-email">{{ user_email }}</span>
+                        {% if is_admin %}
+                            <span class="navbar-badge admin">Admin</span>
+                        {% else %}
+                            <span class="navbar-badge user">User</span>
+                        {% endif %}
+                        <a href="{{ url_for('logout') }}" class="navbar-link">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="navbar-link">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                    <a href="{{ url_for('register') }}" class="navbar-link">
+                        <i class="fas fa-user-plus"></i> Register
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Header -->
+        <div style="text-align: center; margin-bottom: var(--spacing-2xl);">
+            <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: var(--spacing-md); background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                <i class="fas fa-flask"></i> Research Visualizations
+            </h1>
+            <p style="font-size: 1.125rem; color: var(--color-text-secondary); max-width: 700px; margin: 0 auto;">
+                Model development and analysis from thesis research on residential electricity consumption prediction using CNN-BiLSTM-SA neural network architecture
+            </p>
+        </div>
+
+        <!-- Model Performance Overview -->
+        <div class="card" style="margin-bottom: var(--spacing-xl);">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">
+                        <i class="fas fa-chart-bar"></i> Model Performance Overview
+                    </h2>
+                    <p class="card-subtitle">Key metrics from the trained CNN-BiLSTM-SA model</p>
+                </div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <i class="fas fa-crosshairs"></i> RMSE
+                    </div>
+                    <div class="stat-value">0.465</div>
+                    <div class="stat-unit">kW</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <i class="fas fa-ruler"></i> MAE
+                    </div>
+                    <div class="stat-value">0.328</div>
+                    <div class="stat-unit">kW</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <i class="fas fa-percentage"></i> R² Score
+                    </div>
+                    <div class="stat-value">0.563</div>
+                    <div class="stat-unit">Coefficient</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <i class="fas fa-clock"></i> Lookback
+                    </div>
+                    <div class="stat-value">24</div>
+                    <div class="stat-unit">hours</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prediction Analysis Section -->
+        <div class="card" style="margin-bottom: var(--spacing-xl);">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">
+                        <i class="fas fa-chart-line"></i> Prediction Analysis
+                    </h2>
+                    <p class="card-subtitle">Actual vs Predicted comparisons and scatter plots</p>
+                </div>
+            </div>
+            
+            <div class="gallery-grid">
+                <div class="gallery-item">
+                    <img src="{{ url_for('static', filename='thesis_figures/Fig_Actual_vs_Pred_kW_First300.png') }}" 
+                         alt="Actual vs Predicted (First 300)" loading="lazy">
+                    <div class="gallery-caption">Actual vs Predicted (First 300 Samples)</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="{{ url_for('static', filename='thesis_figures/Fig_Scatter_Pred_vs_Actual_kW.png') }}" 
+                         alt="Scatter: Predicted vs Actual" loading="lazy">
+                    <div class="gallery-caption">Scatter: Predicted vs Actual</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Comparison Section -->
+        <div class="card" style="margin-bottom: var(--spacing-xl);">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">
+                        <i class="fas fa-balance-scale"></i> Model Comparison
+                    </h2>
+                    <p class="card-subtitle">Performance metrics across different model architectures</p>
+                </div>
+            </div>
+            
+            <div class="gallery-grid">
+                <div class="gallery-item">
+                    <img src="{{ url_for('static', filename='thesis_figures/Fig_Model_Comparison_Table.png') }}" 
+                         alt="Model Comparison Table" loading="lazy">
+                    <div class="gallery-caption">Model Comparison Table</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="{{ url_for('static', filename='thesis_figures/Fig_Compare_RMSE_kW.png') }}" 
+                         alt="RMSE Comparison" loading="lazy">
+                    <div class="gallery-caption">RMSE Comparison</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="{{ url_for('static', filename='thesis_figures/Fig_Compare_MAE_kW.png') }}" 
+                         alt="MAE Comparison" loading="lazy">
+                    <div class="gallery-caption">MAE Comparison</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="{{ url_for('static', filename='thesis_figures/Fig_Compare_R2_kW.png') }}" 
+                         alt="R² Comparison" loading="lazy">
+                    <div class="gallery-caption">R² Comparison</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature Analysis Section -->
+        <div class="card" style="margin-bottom: var(--spacing-xl);">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">
+                        <i class="fas fa-project-diagram"></i> Feature Analysis
+                    </h2>
+                    <p class="card-subtitle">Feature importance and mutual information ranking</p>
+                </div>
+            </div>
+            
+            <div class="gallery-grid">
+                <div class="gallery-item full-width">
+                    <img src="{{ url_for('static', filename='thesis_figures/Fig_Feature_MI_Ranking.png') }}" 
+                         alt="Feature MI Ranking" loading="lazy">
+                    <div class="gallery-caption">Feature Mutual Information Ranking</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Residual Analysis Section -->
+        <div class="card" style="margin-bottom: var(--spacing-xl);">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">
+                        <i class="fas fa-chart-area"></i> Residual Analysis
+                    </h2>
+                    <p class="card-subtitle">Error distribution and residual patterns</p>
+                </div>
+            </div>
+            
+            <div class="gallery-grid">
+                <div class="gallery-item">
+                    <img src="{{ url_for('static', filename='thesis_figures/Fig_Residuals_Hist_kW.png') }}" 
+                         alt="Residuals Histogram" loading="lazy">
+                    <div class="gallery-caption">Residuals Histogram</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="{{ url_for('static', filename='thesis_figures/Fig_Residuals_Time_kW.png') }}" 
+                         alt="Residuals Over Time" loading="lazy">
+                    <div class="gallery-caption">Residuals Over Time</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Training Progress Section -->
+        <div class="card" style="margin-bottom: var(--spacing-xl);">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">
+                        <i class="fas fa-brain"></i> Training Progress
+                    </h2>
+                    <p class="card-subtitle">Loss curves during model training</p>
+                </div>
+            </div>
+            
+            <div class="gallery-grid">
+                <div class="gallery-item full-width">
+                    <img src="{{ url_for('static', filename='thesis_figures/Fig_Loss_CNN_BiLSTM_SA.png') }}" 
+                         alt="Loss: CNN-BiLSTM-SA" loading="lazy">
+                    <div class="gallery-caption">Training & Validation Loss: CNN-BiLSTM-SA</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- About the Research -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">
+                        <i class="fas fa-info-circle"></i> About This Research
+                    </h2>
+                    <p class="card-subtitle">Technical details about the model architecture</p>
+                </div>
+            </div>
+            
+            <div style="color: var(--color-text-secondary); line-height: 1.8;">
+                <p style="margin-bottom: var(--spacing-md);">
+                    This research presents a hybrid deep learning approach for residential electricity consumption prediction using a 
+                    <strong style="color: var(--color-accent-primary);">CNN-BiLSTM-SA (Convolutional Neural Network - Bidirectional LSTM - Self-Attention)</strong> 
+                    architecture.
+                </p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--spacing-lg); margin-top: var(--spacing-lg);">
+                    <div style="background: var(--color-bg-tertiary); padding: var(--spacing-lg); border-radius: var(--radius-md); border-left: 4px solid var(--color-accent-primary);">
+                        <h4 style="color: var(--color-text-primary); margin-bottom: var(--spacing-sm);">
+                            <i class="fas fa-layer-group" style="color: var(--color-accent-primary);"></i> CNN Layer
+                        </h4>
+                        <p style="font-size: 0.875rem;">Extracts local temporal patterns and features from the input time series data.</p>
+                    </div>
+                    
+                    <div style="background: var(--color-bg-tertiary); padding: var(--spacing-lg); border-radius: var(--radius-md); border-left: 4px solid var(--color-accent-secondary);">
+                        <h4 style="color: var(--color-text-primary); margin-bottom: var(--spacing-sm);">
+                            <i class="fas fa-arrows-alt-h" style="color: var(--color-accent-secondary);"></i> BiLSTM Layer
+                        </h4>
+                        <p style="font-size: 0.875rem;">Captures long-term temporal dependencies in both forward and backward directions.</p>
+                    </div>
+                    
+                    <div style="background: var(--color-bg-tertiary); padding: var(--spacing-lg); border-radius: var(--radius-md); border-left: 4px solid var(--color-success);">
+                        <h4 style="color: var(--color-text-primary); margin-bottom: var(--spacing-sm);">
+                            <i class="fas fa-bullseye" style="color: var(--color-success);"></i> Self-Attention
+                        </h4>
+                        <p style="font-size: 0.875rem;">Focuses on the most relevant time steps for making accurate predictions.</p>
+                    </div>
+                </div>
+                
+                <div style="margin-top: var(--spacing-xl); padding: var(--spacing-lg); background: rgba(99, 102, 241, 0.1); border-radius: var(--radius-md); border: 1px solid rgba(99, 102, 241, 0.2);">
+                    <h4 style="color: var(--color-accent-primary); margin-bottom: var(--spacing-sm);">
+                        <i class="fas fa-database"></i> Dataset
+                    </h4>
+                    <p style="font-size: 0.875rem;">
+                        The model was trained on the UCI Individual Household Electric Power Consumption dataset, 
+                        containing measurements from a household in Sceaux, France, collected over 4 years at 1-minute intervals.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer style="text-align: center; padding: var(--spacing-2xl); color: var(--color-text-tertiary); font-size: 0.875rem;">
+        <p>CNN-BiLSTM-SA Model for Residential Electricity Consumption Prediction</p>
+        <p style="margin-top: var(--spacing-sm);">Thesis Research Project</p>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        document.getElementById('navbarToggle')?.addEventListener('click', function() {
+            document.getElementById('navbarLinks').classList.toggle('active');
+        });
+
+        // Image modal functionality
+        const galleryItems = document.querySelectorAll('.gallery-item img');
+        galleryItems.forEach(img => {
+            img.style.cursor = 'pointer';
+            img.addEventListener('click', function() {
+                const modal = document.createElement('div');
+                modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 10000; cursor: pointer;';
+                
+                const modalImg = document.createElement('img');
+                modalImg.src = this.src;
+                modalImg.style.cssText = 'max-width: 90%; max-height: 90%; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.5);';
+                
+                modal.appendChild(modalImg);
+                document.body.appendChild(modal);
+                
+                modal.addEventListener('click', function() {
+                    document.body.removeChild(modal);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

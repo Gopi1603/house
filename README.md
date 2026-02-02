@@ -24,7 +24,7 @@ This application implements a complete end-to-end pipeline from data preprocessi
 - ✅ **Admin Panel**: Auto-created admin account for management
 - ✅ **Session Management**: Secure cookie-based authentication
 - ✅ **Database Persistence**: SQLite database for users and predictions
-- ✅ **Guest Mode**: Non-logged-in users can still make predictions
+- ✅ **Guest Mode**: Non-logged-in users can view research and explore the interface
 - ✅ **Health Monitoring**: Comprehensive database and model health checks
 
 #### 🆕 Phase 3 Features (Admin Dashboard - Monitoring Only)
@@ -234,13 +234,15 @@ The application automatically creates an admin account on first run:
 ### Authentication Features
 
 #### Guest Users (No Login)
-- ✅ Can make predictions
-- ✅ Can view model metrics
+- ✅ Can view home page and research visualizations
 - ✅ Can download sample CSV
+- ✅ Can explore the interface
+- ❌ **Cannot make predictions** (login required)
 - ❌ Cannot save prediction history
 
 #### Registered Users
-- ✅ All guest features
+- ✅ **Can make predictions**
+- ✅ View model metrics and research
 - ✅ Save prediction history automatically
 - ✅ View past predictions
 - ✅ Download original CSV files
@@ -365,9 +367,9 @@ SELECT * FROM prediction_runs;
 
 **Features:**
 - Navigation bar (Login/Register or History/Logout)
-- Prediction form with CSV upload
-- Model metrics display
-- Guest mode notice for non-logged-in users
+- Prediction form with CSV upload (login required)
+- Research visualizations page
+- Login prompt for non-logged-in users
 
 **Response:** HTML page
 
@@ -376,7 +378,7 @@ SELECT * FROM prediction_runs;
 #### `POST /predict`
 **Description:** Upload CSV with 24-hour window and get next-hour prediction
 
-**Authentication:** Optional (saves history if logged in)
+**Authentication:** **Required** (must be logged in to make predictions)
 
 **Request:** `multipart/form-data` with file upload
 - Key: `file`
@@ -397,7 +399,7 @@ SELECT * FROM prediction_runs;
 }
 ```
 
-**Note:** `saved_to_history` is `true` for logged-in users, `false` for guests.
+**Note:** `saved_to_history` is always `true` since login is required to make predictions.
 
 **Response (Error):**
 ```json
@@ -610,9 +612,9 @@ password=mypassword123
 ### User Modes
 
 #### Guest Mode (Not Logged In)
-- ✅ Can make predictions
-- ✅ Can view model metrics
-- ❌ Predictions NOT saved to history
+- ✅ Can view home page and research visualizations
+- ✅ Can download sample CSV
+- ❌ **Cannot make predictions** (login required)
 - ❌ Cannot view/download past predictions
 
 #### Logged-In User Mode

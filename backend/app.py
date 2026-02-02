@@ -113,7 +113,19 @@ if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
 @app.route('/')
 def index():
     """Render the main page"""
+    # Redirect admins to admin dashboard
+    if is_admin():
+        return redirect(url_for('admin_dashboard'))
+    
     return render_template('index.html', 
+                         logged_in=is_logged_in(),
+                         is_admin=is_admin(),
+                         user_email=session.get('email'))
+
+@app.route('/research')
+def research():
+    """Render the research visualizations page"""
+    return render_template('research.html', 
                          logged_in=is_logged_in(),
                          is_admin=is_admin(),
                          user_email=session.get('email'))
@@ -124,6 +136,7 @@ def favicon():
     return '', 204
 
 @app.route('/predict', methods=['POST'])
+@login_required
 def predict():
     """
     PRD-compliant endpoint for 24-hour lookback electricity prediction
@@ -545,7 +558,7 @@ def register():
         # Already logged in? Redirect to home
         if is_logged_in():
             return redirect(url_for('index'))
-        return render_template('register.html')
+        return render_template('auth.html', mode='register')
     
     # POST: Handle registration
     email = request.form.get('email', '').strip()
@@ -555,23 +568,23 @@ def register():
     # Validation
     if not email or not password:
         flash('Email and password are required.', 'error')
-        return render_template('register.html', email=email)
+        return render_template('auth.html', mode='register', email=email)
     
     # Basic email validation
     email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     if not re.match(email_pattern, email):
         flash('Please enter a valid email address.', 'error')
-        return render_template('register.html', email=email)
+        return render_template('auth.html', mode='register', email=email)
     
     # Password length check
     if len(password) < 6:
         flash('Password must be at least 6 characters long.', 'error')
-        return render_template('register.html', email=email)
+        return render_template('auth.html', mode='register', email=email)
     
     # Password confirmation
     if password != confirm_password:
         flash('Passwords do not match.', 'error')
-        return render_template('register.html', email=email)
+        return render_template('auth.html', mode='register', email=email)
     
     # Hash password
     password_hash = generate_password_hash(password)
@@ -581,7 +594,7 @@ def register():
     
     if user_id is None:
         flash('Email already registered. Please log in.', 'error')
-        return render_template('register.html', email=email)
+        return render_template('auth.html', mode='register', email=email)
     
     # Auto-login after registration (new users are never admins)
     set_user_session(user_id, email, is_admin=False)
@@ -596,7 +609,7 @@ def login():
         # Already logged in? Redirect to home
         if is_logged_in():
             return redirect(url_for('index'))
-        return render_template('login.html')
+        return render_template('auth.html', mode='login')
     
     # POST: Handle login
     email = request.form.get('email', '').strip()
@@ -605,30 +618,34 @@ def login():
     # Validation
     if not email or not password:
         flash('Email and password are required.', 'error')
-        return render_template('login.html', email=email)
+        return render_template('auth.html', mode='login', email=email)
     
     # Get user from database
     user = db.get_user_by_email(email)
     
     if user is None:
         flash('Invalid email or password.', 'error')
-        return render_template('login.html', email=email)
+        return render_template('auth.html', mode='login', email=email)
     
     # Check password
     if not check_password_hash(user['password_hash'], password):
         flash('Invalid email or password.', 'error')
-        return render_template('login.html', email=email)
+        return render_template('auth.html', mode='login', email=email)
     
     # Login successful - set session with admin flag
     # sqlite3.Row doesn't have .get() method, so access directly
-    is_admin = user['is_admin'] == 1 if 'is_admin' in user.keys() else False
-    set_user_session(user['id'], user['email'], is_admin)
+    is_admin_user = user['is_admin'] == 1 if 'is_admin' in user.keys() else False
+    set_user_session(user['id'], user['email'], is_admin_user)
     flash('Logged in successfully!', 'success')
     
-    # Redirect to next page if specified, otherwise home
+    # Redirect to next page if specified
     next_page = request.args.get('next')
     if next_page:
         return redirect(next_page)
+    
+    # Redirect admins to admin dashboard, regular users to home
+    if is_admin_user:
+        return redirect(url_for('admin_dashboard'))
     return redirect(url_for('index'))
 
 
@@ -647,7 +664,11 @@ def logout():
 @app.route('/history')
 @login_required
 def history():
-    """Display user's prediction history"""
+    """Display user's prediction history (redirects admin to admin_history)"""
+    # Redirect admins to admin history page
+    if is_admin():
+        return redirect(url_for('admin_history'))
+    
     user_id = get_current_user_id()
     runs = db.get_user_prediction_runs(user_id, limit=100)
     total_count = db.get_prediction_count(user_id)
@@ -656,14 +677,17 @@ def history():
                          runs=runs, 
                          total_count=total_count,
                          logged_in=True,
-                         is_admin=is_admin(),
                          user_email=session.get('email'))
 
 
 @app.route('/history/<int:run_id>')
 @login_required
 def history_detail(run_id):
-    """Display details of a specific prediction run"""
+    """Display details of a specific prediction run (redirects admin to admin view)"""
+    # Redirect admins to admin history detail page
+    if is_admin():
+        return redirect(url_for('admin_history_detail', run_id=run_id))
+    
     user_id = get_current_user_id()
     run = db.get_prediction_run_by_id(run_id, user_id)
     
@@ -683,7 +707,6 @@ def history_detail(run_id):
                          run=run,
                          last24_data=last24_data,
                          logged_in=True,
-                         is_admin=is_admin(),
                          user_email=session.get('email'))
 
 
@@ -808,6 +831,85 @@ def admin_predictions():
     return render_template('admin_predictions.html', 
                           predictions=predictions,
                           limit=limit)
+
+
+@app.route('/admin/history')
+@admin_required
+def admin_history():
+    """
+    Admin history page - shows all users' prediction history.
+    """
+    limit = request.args.get('limit', 100, type=int)
+    runs = db.get_all_prediction_runs_admin(limit=limit)
+    total_count = db.get_total_prediction_count_admin()
+    unique_users = db.get_unique_users_with_predictions()
+    
+    return render_template('admin_history.html', 
+                          runs=runs, 
+                          total_count=total_count,
+                          unique_users=unique_users)
+
+
+@app.route('/admin/history/<int:run_id>')
+@admin_required
+def admin_history_detail(run_id):
+    """
+    Admin view of a specific prediction run detail.
+    """
+    run = db.get_prediction_run_by_id_admin(run_id)
+    
+    if run is None:
+        flash('Prediction not found.', 'error')
+        return redirect(url_for('admin_history'))
+    
+    # Parse last24_json if available
+    last24_data = None
+    if run.get('last24_json'):
+        try:
+            last24_data = json.loads(run['last24_json'])
+        except:
+            pass
+    
+    return render_template('admin_history_detail.html',
+                          run=run,
+                          last24_data=last24_data)
+
+
+@app.route('/admin/history/<int:run_id>/download')
+@admin_required
+def admin_download_csv(run_id):
+    """
+    Admin download CSV for any prediction run.
+    """
+    run = db.get_prediction_run_by_id_admin(run_id)
+    
+    if run is None:
+        flash('Prediction not found.', 'error')
+        return redirect(url_for('admin_history'))
+    
+    # Check storage type
+    if run['csv_storage_type'] == 'FILE':
+        csv_path = run['csv_file_path']
+        if not os.path.exists(csv_path):
+            flash('CSV file not found on server.', 'error')
+            return redirect(url_for('admin_history_detail', run_id=run_id))
+        
+        return send_file(csv_path, 
+                        mimetype='text/csv',
+                        as_attachment=True,
+                        download_name=run['filename'])
+    
+    elif run['csv_storage_type'] == 'TEXT':
+        from flask import Response
+        return Response(
+            run['csv_text'],
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename={run["filename"]}'}
+        )
+    
+    else:
+        flash('Unknown storage type.', 'error')
+        return redirect(url_for('admin_history_detail', run_id=run_id))
 
 
 @app.route('/admin/predictions/<int:prediction_id>')
