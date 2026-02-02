@@ -2,7 +2,24 @@
 
 A Flask-based web application for forecasting short-term residential electricity consumption using a **CNN-BiLSTM with Self-Attention** deep learning model trained on the UCI Individual Household Electric Power Consumption dataset.
 
-## 📋 Overview
+## � Screenshots
+
+### Home Page (Login Required for Predictions)
+![Home Page](frontend/static/home.png)
+
+### Authentication Page (Login/Register)
+![Auth Page](frontend/static/auth.png)
+
+### User Dashboard & Prediction History
+![User Page](frontend/static/user.png)
+
+### Research Visualizations
+![Research Page](frontend/static/research.png)
+
+### Admin Dashboard
+![Admin Dashboard](frontend/static/admin.png)
+
+## �📋 Overview
 
 This application implements a complete end-to-end pipeline from data preprocessing and model training (Kaggle) to production-ready inference with a professional web interface. It provides **1-hour ahead electricity consumption predictions** based on a 24-hour lookback window.
 
