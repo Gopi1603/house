@@ -139,7 +139,6 @@ PDF **mentions user authentication**, but:
 
 ✔ **Correct omission**
 ✔ **Later added as engineering extension**
-❌ **Do NOT claim PDF required DB**
 
 ---
 
@@ -176,10 +175,10 @@ PDF **mentions user authentication**, but:
 
 | Item                | Status            |
 | ------------------- | ----------------- |
-| Weather integration | ❌ Not implemented |
-| IoT integration     | ❌ Not implemented |
-| Cloud API           | ❌ Not implemented |
-| Recommendations     | ❌ Not implemented |
+| Weather integration | ❌ Not needed  now|
+| IoT integration     | ❌ Not needed now  |
+| Cloud API           | ❌ Not needed now 
+  ommendations     | ❌ Not needed now |
 
 ✔ **Correctly documented as future work**
 ✔ **Nothing missing here**
@@ -209,8 +208,8 @@ PDF **mentions user authentication**, but:
 * IoT
 * Cloud API
 * Recommendation engine
-* Database (original PDF)
-* Authentication (original PDF)
+* Database 
+* Authentication 
 
 ---
 
