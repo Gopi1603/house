@@ -1237,13 +1237,17 @@ This project was developed for academic demonstration purposes as part of a thes
 
 ## 📄 License
 
-This project is for academic and educational purposes.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 ## 👤 Author
 
-Developed as part of a residential electricity consumption forecasting research project.
+**Gopi Chakradhar**
+
+Built with passion and creativity by [Gopi Chakradhar](https://gopi-chakradhar.vercel.app/)
+
+📧 **Contact:** 6302511822
 
 **Technologies Used:**
 - Python 3.12
@@ -1261,25 +1265,12 @@ Developed as part of a residential electricity consumption forecasting research 
 - **Dataset:** UCI Machine Learning Repository - Individual Household Electric Power Consumption
 - **Training Platform:** Kaggle (GPU acceleration)
 - **Deep Learning Framework:** TensorFlow/Keras
-- **Web Framework:** Flaskrature": 25.5, "humidity": 65.0, "hour": 14, "day_of_week": 2}}'
-```
+- **Web Framework:** Flask
 
-## Troubleshooting
+---
 
-### Model Loading Issues
-- Ensure all model artifacts are in the `backend/model/` directory
-- Check that the model file is compatible with your TensorFlow version
+## 📞 Contact
 
-### Port Already in Use
-- Change the port in `app.py`: `app.run(port=5001)`
-
-### Missing Dependencies
-- Reinstall requirements: `pip install -r requirements.txt --force-reinstall`
-
-## License
-
-[Your License Here]
-
-## Contact
-
-[Your Contact Information]
+- **Portfolio:** [gopi-chakradhar.vercel.app](https://gopi-chakradhar.vercel.app/)
+- **Phone:** 6302511822
+- **GitHub:** [Gopi1603](https://github.com/Gopi1603)
