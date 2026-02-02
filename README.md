@@ -86,21 +86,20 @@ app/
 └── frontend/
     ├── templates/
     │   ├── index.html              # Main web UI with metrics & gallery
-    │   ├── login.html              # 🆕 User login page
-    │   ├── register.html           # 🆕 User registration page
-    │   ├── history.html            # 🆕 Prediction history list
-    │   ├── history_detail.html     # 🆕 Prediction details page
-    │   ├── admin_dashboard.html    # 🆕🆕 Phase 3: Admin dashboard
-    │   ├── admin_users.html        # 🆕🆕 Phase 3: User management
-    │   └── admin_predictions.html  # 🆕🆕 Phase 3: Prediction monitoring
+    │   ├── login.html              # User login page
+    │   ├── register.html           # User registration page
+    │   ├── history.html            # Prediction history list
+    │   ├── history_detail.html     # Prediction details page
+    │   ├── admin_dashboard.html    # Admin dashboard
+    │   ├── admin_users.html        # User management
+    │   └── admin_predictions.html  # Prediction monitoring
     └── static/
         ├── style.css               # Professional styling
         ├── app.js                  # Frontend logic with Chart.js
         └── thesis_figures/         # Model comparison & performance figures
 ```
 
-🆕 = New in Phase 2  
-🆕🆕 = New in Phase 3
+
 
 ## 🚀 Quick Start Guide
 
@@ -375,246 +374,6 @@ SELECT * FROM prediction_runs;
 
 ---
 
-## 🔌 API Endpoints
-
-### Core Endpoints
-
-#### `GET /`
-**Description:** Main web interface with prediction form and metrics dashboard
-
-**Features:**
-- Navigation bar (Login/Register or History/Logout)
-- Prediction form with CSV upload (login required)
-- Research visualizations page
-- Login prompt for non-logged-in users
-
-**Response:** HTML page
-
----
-
-#### `POST /predict`
-**Description:** Upload CSV with 24-hour window and get next-hour prediction
-
-**Authentication:** **Required** (must be logged in to make predictions)
-
-**Request:** `multipart/form-data` with file upload
-- Key: `file`
-- Value: CSV file with 24 rows, 6 columns
-
-**CSV Requirements:**
-- Exactly **24 rows** (24-hour lookback)
-- Exactly **6 columns**: `Global_intensity`, `Sub_metering_3`, `Voltage`, `Global_reactive_power`, `Sub_metering_2`, `Global_active_power`
-- All values must be numeric
-
-**Response (Success):**
-```json
-{
-  "predicted_power_kw": 0.519,
-  "actual_last_24h_kw": [1.088, 1.080, ..., 0.904],
-  "predicted_next_hour_kw": 0.519,
-  "saved_to_history": true
-}
-```
-
-**Note:** `saved_to_history` is always `true` since login is required to make predictions.
-
-**Response (Error):**
-```json
-{
-  "error": "CSV must have exactly 24 rows (24-hour window). Found 20 rows."
-}
-```
-
----
-
-#### `GET /api/health`
-**Description:** Comprehensive system health check
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "timestamp": "2026-02-03T00:15:42.123456",
-  "database": {
-    "status": "healthy",
-    "tables": ["users", "prediction_runs"],
-    "user_count": 5,
-    "prediction_count": 23,
-    "db_path": "C:\\...\\app\\backend\\data\\app.db"
-  },
-  "model": {
-    "loaded": true,
-    "lookback": 24,
-    "features_count": 5
-  },
-  "lookback_required": 24,
-  "required_columns": [...]
-}
-```
-
----
-
-### Authentication Endpoints
-
-#### `GET/POST /register`
-**Description:** User registration
-
-**POST Request:**
-```
-email=user@example.com
-password=mypassword123
-confirm_password=mypassword123
-```
-
-**Validation:**
-- Email must be valid format
-- Email must be unique
-- Password ≥ 6 characters
-- Passwords must match
-
-**Response:** Redirect to home with auto-login
-
----
-
-#### `GET/POST /login`
-**Description:** User authentication
-
-**POST Request:**
-```
-email=user@example.com
-password=mypassword123
-```
-
-**Response:** Redirect to home with session created
-
----
-
-#### `GET /logout`
-**Description:** User logout
-
-**Response:** Clear session and redirect to home
-
----
-
-### History Endpoints (Protected - Login Required)
-
-#### `GET /history`
-**Description:** List of user's prediction runs
-
-**Authentication:** Required
-
-**Response:** HTML page with table of predictions
-
----
-
-#### `GET /history/<int:run_id>`
-**Description:** Detailed view of specific prediction
-
-**Authentication:** Required + Ownership check
-
-**Response:** HTML page with full prediction details
-
----
-
-#### `GET /history/<int:run_id>/download`
-**Description:** Download original CSV file
-
-**Authentication:** Required + Ownership check
-
-**Response:** CSV file download
-
----
-
-### Admin Endpoints (Phase 3 - Admin Only)
-
-#### `GET /admin/dashboard`
-**Description:** Admin dashboard with system statistics
-
-**Authentication:** Admin privileges required
-
-**Response:** HTML page with:
-- Total users and predictions
-- Average predicted power
-- Latest prediction timestamp
-- System health status
-
-⚠️ **Admin Note:** This is a monitoring-only interface. Admins cannot modify ML models or predictions.
-
----
-
-#### `GET /admin/users`
-**Description:** View all registered users
-
-**Authentication:** Admin privileges required
-
-**Response:** HTML page with user table:
-- User ID, email, role
-- Registration date
-- Prediction count
-- Delete actions (non-admin users only)
-
-**Security:** Admin users cannot be deleted through this interface.
-
----
-
-#### `POST /admin/users/delete/<int:user_id>`
-**Description:** Delete a user and all their predictions
-
-**Authentication:** Admin privileges required
-
-**Security:**
-- Cannot delete admin users
-- Cascade deletes all user predictions
-- Requires POST method with confirmation
-
-**Response:** Redirect to user list with status message
-
----
-
-#### `GET /admin/predictions`
-**Description:** View all predictions across all users
-
-**Authentication:** Admin privileges required
-
-**Query Parameters:**
-- `limit` (optional): Max predictions to display (default: 100)
-
-**Response:** HTML page with prediction table:
-- Prediction ID, user email, timestamp
-- Predicted power value
-- CSV download link
-- Delete actions
-
----
-
-#### `POST /admin/predictions/delete/<int:prediction_id>`
-**Description:** Delete a prediction record
-
-**Authentication:** Admin privileges required
-
-**Response:** Redirect to predictions list with status message
-
-**Note:** Deleting a prediction does not affect the ML model or training data.
-
----
-
-### Other Endpoints
-
-#### `GET /api/model-metrics`
-**Description:** Retrieve model performance metrics
-
-**Response:**
-```json
-{
-  "mae": 0.0846,
-  "mse": 0.0148,
-  "rmse": 0.1217,
-  "r2": 0.9451,
-  "mape": 14.55
-}
-```
-
----
 
 ## 🔐 Authentication & Usage
 
@@ -738,207 +497,10 @@ python backend/check_db.py clear
 
 ---
 
-## 🩺 Health Checks
-
-### Startup Health Checks
-
-When you run `python backend/app.py`, the application performs comprehensive health checks:
-
-```
-======================================================================
-               🗄️  DATABASE HEALTH CHECK
-======================================================================
-✓ Database initialized: C:\...\app\backend\data\app.db
-✓ Tables: users, prediction_runs
-✓ Users: 5
-✓ Predictions: 23
-✓ Admin user already exists
-======================================================================
-
-======================================================================
-               🤖  MODEL HEALTH CHECK
-======================================================================
-✓ Model loaded successfully
-✓ Lookback window: 24 hours
-✓ Selected features: 5
-======================================================================
-
-======================================================================
-               🌐  AVAILABLE ENDPOINTS
-======================================================================
-Core Routes:
-  • GET  /
-  • POST /predict
-  
-Auth Routes:
-  • GET/POST /register
-  • GET/POST /login
-  • GET     /logout
-
-History Routes (Protected):
-  • GET  /history
-  • GET  /history/<id>
-  • GET  /history/<id>/download
-
-API Routes:
-  • GET  /api/health
-  • GET  /api/model-metrics
-======================================================================
-
- * Running on http://127.0.0.1:5000
-```
-
-### Runtime Health Check
-
-#### Test via browser:
-```
-http://localhost:5000/api/health
-```
-
-#### Test via curl:
-```bash
-curl http://localhost:5000/api/health
-```
-
-**Healthy Response:**
-```json
-{
-  "status": "healthy",
-  "timestamp": "2026-02-03T00:15:42.123456",
-  "database": {
-    "status": "healthy",
-    "tables": ["users", "prediction_runs"],
-    "user_count": 5,
-    "prediction_count": 23,
-    "db_path": "C:\\...\\app\\backend\\data\\app.db"
-  },
-  "model": {
-    "loaded": true,
-    "lookback": 24,
-    "features_count": 5
-  },
-  "lookback_required": 24,
-  "required_columns": [...]
-}
-```
-
-All health checks should show ✓ (green checkmarks) with no error messages.
-
----
-
-## 🐛 Troubleshooting
-
-### Phase 1 Issues
-
-#### "Model file not found"
-- Ensure `backend/model/final_model.keras` exists
-- Run Kaggle notebook to train model if missing
-
-#### "CSV must have exactly 24 rows"
-- Provide exactly 24 hourly measurements
-- Use `sample_input.csv` as template
-
-#### "Missing required columns"
-- CSV must have: `Global_intensity`, `Sub_metering_3`, `Voltage`, `Global_reactive_power`, `Sub_metering_2`, `Global_active_power`
-
-### Phase 2 Issues
-
-#### "Database not initialized"
-- Delete `backend/data/app.db` and restart app
-- Database will auto-create with admin user
-
-#### "Admin user not found"
-- Check startup logs for "✓ Admin user created"
-- Run `python backend/check_db.py` to verify admin exists
-- Admin email: `admin@localhost`, password: `admin123`
-
-#### "Invalid email or password"
-- Passwords are case-sensitive
-- Email must match registered email exactly
-- Use "Forgot password?" link (if implemented) or contact admin
-
-#### "You do not have access to this prediction"
-- Users can only view their own predictions
-- Admins can view all predictions (if admin features enabled)
-
-#### "Session expired"
-- Sessions expire after browser close or timeout
-- Re-login to restore session
-
-#### Health check shows errors
-- Check database file permissions
-- Verify model files exist in `backend/model/`
-- Check `backend/data/` directory is writable
-- Review startup logs for specific error messages
-
-### Phase 3 Issues (Admin Dashboard)
-
-#### "Access denied. Admin privileges required"
-- Only admin users can access admin routes
-- Login with admin credentials: `admin@localhost` / `admin123`
-- Regular users cannot access `/admin/*` routes
-
-#### Admin link not showing in navigation
-- Ensure you're logged in as admin user
-- Check startup logs confirm admin user exists
-- Clear browser cache and cookies, then re-login
-
-#### "Could not build url for endpoint"
-- This is a template error - ensure all Flask routes exist
-- Check that route function names match `url_for()` calls
-- Restart Flask app after code changes
-
-#### Cannot delete admin user
-- This is intentional security feature
-- Admin users are protected from deletion
-- Only non-admin users can be deleted through UI
-
----
-
 ## 📝 Testing & Validation
 
-### Phase 1 Testing
+###  Testing
 See [final.md](final.md) for detailed model evaluation and metrics.
-
-### Phase 2 Testing
-- Authentication flow testing
-- History tracking validation
-- Database persistence tests
-- Security verification
-
-### Phase 3 Testing (Admin Dashboard)
-**Admin Login Test:**
-1. Navigate to `http://localhost:5000/login`
-2. Login with: `admin@localhost` / `admin123`
-3. Verify 🛡️ Admin link appears (gold background)
-4. Click Admin link to access dashboard
-
-**Admin Features Test:**
-1. **Dashboard**: View system statistics (users, predictions, avg power)
-2. **User Management**: View all users, check prediction counts
-3. **Delete User**: Try deleting a non-admin user (requires confirmation)
-4. **Prediction Monitoring**: View all predictions across all users
-5. **Delete Prediction**: Try deleting a prediction (requires confirmation)
-6. **CSV Download**: Download original CSV from prediction list
-
-**Security Test:**
-1. Create regular user account
-2. Login as regular user
-3. Try accessing `http://localhost:5000/admin/dashboard` directly
-4. Should redirect with "Access denied" message
-5. Verify admin link does NOT appear for regular users
-
-⚠️ **Important**: Verify that admin CANNOT modify ML models or predictions (monitoring only).
-
-### Quick Manual Test
-
-1. **Start app**: `python backend/app.py`
-2. **Register**: Create account at `http://localhost:5000/register`
-3. **Login**: Use new credentials
-4. **Predict**: Upload `sample_input.csv`
-5. **View History**: Navigate to `/history`
-6. **Download**: Click download button on saved prediction
-7. **Logout**: Click logout in navigation
 
 ---
 
@@ -976,7 +538,7 @@ See [final.md](final.md) for detailed model evaluation and metrics.
 **Plus target:**
 - **Global_active_power** - Total active power (kW) - prediction target
 
-### PRD Compliance (Section 11)
+### Compliance 
 - ✅ Input vector length = **6** (5 features + 1 target history)
 - ✅ Lookback window = **24 hours**
 - ✅ Output = **1-hour ahead prediction**
@@ -1017,7 +579,7 @@ See [final.md](final.md) for detailed model evaluation and metrics.
 ---
 
 ### `GET /debug/selftest`
-**Description:** Automated PRD compliance verification endpoint
+**Description:** Automated compliance verification endpoint
 
 **Response:**
 ```json
@@ -1038,107 +600,6 @@ See [final.md](final.md) for detailed model evaluation and metrics.
 }
 ```
 
----🧪 Testing the Application
-
-### Test Health Endpoint
-```bash
-curl http://localhost:5000/api/health
-```
-
-### Test Model Metrics
-```bash
-curl http://localhost:5000/api/model-metrics
-```
-
-### Test Self-Test Endpoint (PRD Compliance)
-```bash
-curl http://localhost:5000/debug/selftest
-```
-
-### Test Prediction with Python
-```python
-import requests
-
-# Using sample CSV
-url = 'http://localhost:5000/predict'
-files = {'file': open('sample_input.csv', 'rb')}
-response = requests.post(url, files=files)
-print(response.json())
-```
-
-### Test Prediction with cURL
-```bash
-curl -X POST http://localhost:5000/predict \
-  -F "file=@sample_input.csv"
-```
-
----
-
-## 🐛 Troubleshooting
-
-### Issue: `ModuleNotFoundError: No module named 'pandas'`
-**Solution:** Install dependencies:
-```bash
-cd app/backend
-pip install -r requirements.txt
-```
-
-### Issue: Model Loading Errors
-**Possible causes:**
-- Missing model artifacts in `backend/model/`
-- TensorFlow version mismatch
-- Corrupted model files
-
-**Solution:**
-1. Verify all files exist: `final_model.keras`, `scaler.pkl`, `config.json`, etc.
-2. Check TensorFlow version: `pip show tensorflow`
-3. Re-download model artifacts from Kaggle if needed
-
-### Issue: Port 5000 Already in Use
-**Solution 1:** Stop the running process:
-```bash
-# Windows
-netstat -ano | findstr :5000
-taskkill /PID <PID> /F
-
-# Linux/Mac
-lsof -ti:5000 | xargs kill -9
-```
-
-**Solution 2:** Change port in `app.py`:
-```python
-app.run(debug=True, host='0.0.0.0', port=5001)
-```
-
-### Issue: CSV Validation Fails
-**Common errors:**
-- Not exactly 24 rows → Must have exactly 24 hours of data
-- Wrong column names → Check spelling and case sensitivity
-- Missing columns → Must have all 6 columns
-- Non-numeric values → All values must be numbers
-
-**Solution:** Use the sample CSV as a template:
-```bash
-# Download from the web UI or use sample_input.csv
-```
-
-### Issue: scikit-learn Version Warning
-```
-InconsistentVersionWarning: Trying to unpickle estimator MinMaxScaler 
-from version 1.6.1 when using version 1.5.2
-```
-
-**Solution:** Upgrade scikit-learn:
-```bash
-pip install scikit-learn==1.6.1
-```
-
-### Issue: CORS Errors in Browser
-**Solution:** Flask-CORS is already configured. If issues persist:
-1. Check browser console for specific errors
-2. Verify Flask-CORS is installed: `pip show flask-cors`
-3. Try accessing from `http://127.0.0.1:5000` instead of `localhost`
-
 ---
 
 ## 📚 Documentation
@@ -1152,7 +613,7 @@ pip install scikit-learn==1.6.1
 
 ## 📊 Complete Feature Summary
 
-### Phase 1: Core ML Application
+### Core ML Application
 ✅ **Prediction Engine**
 - CNN-BiGRU-SA hybrid model (MAE: 15.64 kWh)
 - 48-hour electricity consumption forecasting
@@ -1165,7 +626,7 @@ pip install scikit-learn==1.6.1
 - CSV download of predictions
 - Professional UI with gradient design
 
-### Phase 2: Authentication & Persistence 🆕
+### Authentication & Persistence 
 ✅ **User Authentication**
 - Secure registration and login system
 - Password hashing with werkzeug.security
@@ -1184,7 +645,7 @@ pip install scikit-learn==1.6.1
 - CSV downloads per prediction run
 - Profile management
 
-### Phase 3: Admin Panel 🆕🆕
+### Admin Panel 
 ✅ **Admin Dashboard**
 - System statistics (users, predictions, avg power)
 - Database health status monitoring
@@ -1245,7 +706,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Gopi Chakradhar**
 
-Built with passion and creativity by [Gopi Chakradhar](https://gopi-chakradhar.vercel.app/)
+Built with passion and creativity by [Gopi Chakradhar](https://gopi-chakradhar.me/)
 
 📧 **Contact:** 6302511822
 
@@ -1271,6 +732,6 @@ Built with passion and creativity by [Gopi Chakradhar](https://gopi-chakradhar.v
 
 ## 📞 Contact
 
-- **Portfolio:** [gopi-chakradhar.vercel.app](https://gopi-chakradhar.vercel.app/)
+- **Portfolio:** [gopi-chakradhar.vercel.app](https://gopi-chakradhar.me/)
 - **Phone:** 6302511822
 - **GitHub:** [Gopi1603](https://github.com/Gopi1603)
