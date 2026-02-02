@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Residential Electricity Consumption Predictor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏠 Residential Electricity Consumption Predictor</h1>
+            <p class="subtitle">CNN-BiLSTM-SA Neural Network Model</p>
+            <p class="model-metrics">Model Performance: RMSE: 0.465 kW | MAE: 0.328 kW | R²: 0.562</p>
+        </header>
+
+        <main>
+            <!-- Model Results Section -->
+            <div class="card model-results-card">
+                <h2>📊 Model Performance Metrics</h2>
+                <div class="metrics-grid">
+                    <div class="metric-box">
+                        <div class="metric-label">RMSE</div>
+                        <div class="metric-value" id="metricRMSE">--</div>
+                        <div class="metric-unit">kW</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">MAE</div>
+                        <div class="metric-value" id="metricMAE">--</div>
+                        <div class="metric-unit">kW</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">R² Score</div>
+                        <div class="metric-value" id="metricR2">--</div>
+                        <div class="metric-unit"></div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">Lookback Window</div>
+                        <div class="metric-value" id="metricLookback">--</div>
+                        <div class="metric-unit">hours</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">Prediction Horizon</div>
+                        <div class="metric-value" id="metricHorizon">--</div>
+                        <div class="metric-unit">hour</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Upload 24-Hour Historical Data</h2>
+                <p class="instruction">
+                    <strong>PRD Requirement:</strong> Model requires exactly <strong>24 hours</strong> of historical data for prediction.<br>
+                    Upload a CSV file with 24 rows (one per hour) containing the following columns:
+                </p>
+                
+                <div class="required-columns">
+                    <h3>Required CSV Columns:</h3>
+                    <ul>
+                        <li><code>Global_intensity</code> - Household average current (Amperes)</li>
+                        <li><code>Sub_metering_3</code> - Electric water heater & AC (Watt-hours)</li>
+                        <li><code>Voltage</code> - Supply voltage (Volts)</li>
+                        <li><code>Global_reactive_power</code> - Household reactive power (kilowatts)</li>
+                        <li><code>Sub_metering_2</code> - Laundry room appliances (Watt-hours)</li>
+                        <li><code>Global_active_power</code> - Historical active power consumption (kilowatts)</li>
+                    </ul>
+                </div>
+
+                <form id="predictionForm" enctype="multipart/form-data">
+                    <div class="upload-area">
+                        <input type="file" 
+                               id="csvFile" 
+                               name="file" 
+                               accept=".csv" 
+                               required>
+                        <label for="csvFile" class="upload-label">
+                            <span class="upload-icon">📁</span>
+                            <span id="fileName">Choose CSV File (24 rows required)</span>
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Predict Next Hour Consumption</button>
+                </form>
+
+                <div class="csv-example">
+                    <h3>CSV Format Example:</h3>
+                    <pre>Global_intensity,Sub_metering_3,Voltage,Global_reactive_power,Sub_metering_2,Global_active_power
+4.628,17.0,234.84,0.226,1.0,1.088
+4.588,17.0,234.35,0.224,1.0,1.080
+...
+(22 more rows)</pre>
+                    <div class="download-buttons">
+                        <a href="#" id="downloadSample" class="download-link">📥 Download Sample CSV (JavaScript)</a>
+                        <a href="/sample-csv" class="download-link download-link-server">🌐 Download Sample CSV (Server)</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card result-card" id="resultCard" style="display: none;">
+                <h2>Prediction Result</h2>
+                <div class="result-content">
+                    <div class="result-value">
+                        <span id="predictionValue">--</span>
+                        <span class="unit">kW</span>
+                    </div>
+                    <p class="result-label">Predicted Next-Hour Active Power Consumption</p>
+                    
+                    <div class="historical-data">
+                        <h3>Last 24 Hours Historical Data with Prediction:</h3>
+                        <canvas id="historyChart"></canvas>
+                        <div class="stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Average</span>
+                                <span class="stat-value" id="avgValue">--</span> kW
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Minimum</span>
+                                <span class="stat-value" id="minValue">--</span> kW
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Maximum</span>
+                                <span class="stat-value" id="maxValue">--</span> kW
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card error-card" id="errorCard" style="display: none;">
+                <h2>Error</h2>
+                <p id="errorMessage"></p>
+            </div>
+
+            <!-- Thesis Figures Gallery -->
+            <div class="card thesis-gallery-card">
+                <h2>🎓 Thesis Figures & Visualizations</h2>
+                <p class="instruction">Research and analysis visualizations from model development phase</p>
+                <div class="gallery-grid" id="thesisGallery">
+                    <div class="gallery-item" data-img="Fig_Actual_vs_Pred_kW_First300.png">
+                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Actual_vs_Pred_kW_First300.png') }}" alt="Actual vs Predicted (First 300)">
+                        <p>Actual vs Predicted (First 300)</p>
+                    </div>
+                    <div class="gallery-item" data-img="Fig_Model_Comparison_Table.png">
+                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Model_Comparison_Table.png') }}" alt="Model Comparison Table">
+                        <p>Model Comparison Table</p>
+                    </div>
+                    <div class="gallery-item" data-img="Fig_Feature_MI_Ranking.png">
+                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Feature_MI_Ranking.png') }}" alt="Feature MI Ranking">
+                        <p>Feature MI Ranking</p>
+                    </div>
+                    <div class="gallery-item" data-img="Fig_Scatter_Pred_vs_Actual_kW.png">
+                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Scatter_Pred_vs_Actual_kW.png') }}" alt="Scatter: Predicted vs Actual">
+                        <p>Scatter: Predicted vs Actual</p>
+                    </div>
+                    <div class="gallery-item" data-img="Fig_Residuals_Hist_kW.png">
+                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Residuals_Hist_kW.png') }}" alt="Residuals Histogram">
+                        <p>Residuals Histogram</p>
+                    </div>
+                    <div class="gallery-item" data-img="Fig_Compare_RMSE_kW.png">
+                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Compare_RMSE_kW.png') }}" alt="RMSE Comparison">
+                        <p>RMSE Comparison</p>
+                    </div>
+                    <div class="gallery-item" data-img="Fig_Compare_MAE_kW.png">
+                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Compare_MAE_kW.png') }}" alt="MAE Comparison">
+                        <p>MAE Comparison</p>
+                    </div>
+                    <div class="gallery-item" data-img="Fig_Compare_R2_kW.png">
+                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Compare_R2_kW.png') }}" alt="R² Comparison">
+                        <p>R² Comparison</p>
+                    </div>
+                    <div class="gallery-item" data-img="Fig_Loss_CNN_BiLSTM_SA.png">
+                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Loss_CNN_BiLSTM_SA.png') }}" alt="Loss: CNN-BiLSTM-SA">
+                        <p>Loss: CNN-BiLSTM-SA</p>
+                    </div>
+                    <div class="gallery-item" data-img="Fig_Residuals_Time_kW.png">
+                        <img src="{{ url_for('static', filename='thesis_figures/Fig_Residuals_Time_kW.png') }}" alt="Residuals Over Time">
+                        <p>Residuals Over Time</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Powered by CNN-BiLSTM with Self-Attention Mechanism</p>
+            <p class="note">Dataset: UCI Individual Household Electric Power Consumption (2006-2010)</p>
+            <p class="note"><strong>24-Hour Lookback Window Required</strong> (PRD Section 11)</p>
+        </footer>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="imageModal" class="modal">
+        <span class="modal-close">&times;</span>
+        <img class="modal-content" id="modalImage">
+        <div id="modalCaption"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

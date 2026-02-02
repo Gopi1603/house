@@ -1,0 +1,21 @@
+{
+  "scaled": {
+    "rmse": 0.07339615533050946,
+    "mae": 0.05261784791946411,
+    "r2": 0.5485560894012451
+  },
+  "original_kw": {
+    "rmse": 0.47241677767396273,
+    "mae": 0.3386765420436859,
+    "r2": 0.5485561490058899
+  },
+  "selected_features": [
+    "Global_intensity",
+    "Sub_metering_3",
+    "Voltage",
+    "Global_reactive_power",
+    "Sub_metering_2"
+  ],
+  "lookback": 24,
+  "horizon": 1
+}

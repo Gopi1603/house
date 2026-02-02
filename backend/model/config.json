@@ -1,0 +1,12 @@
+{
+  "lookback": 24,
+  "horizon": 1,
+  "target_col": "Global_active_power",
+  "selected_features": [
+    "Global_intensity",
+    "Sub_metering_3",
+    "Voltage",
+    "Global_reactive_power",
+    "Sub_metering_2"
+  ]
+}
