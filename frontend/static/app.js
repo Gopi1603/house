@@ -54,6 +54,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Display prediction
                 predictionValue.textContent = data.predicted_power_kw.toFixed(3);
                 
+                // Phase 2: Show history save notification
+                if (data.saved_to_history) {
+                    const historyMsg = document.createElement('div');
+                    historyMsg.style.cssText = 'background:#d4edda;color:#155724;padding:10px;border-radius:4px;margin-bottom:15px;border:1px solid #c3e6cb;';
+                    historyMsg.innerHTML = '✓ Prediction saved to <a href="/history" style="color:#155724;font-weight:600;">your history</a>';
+                    resultCard.insertBefore(historyMsg, resultCard.firstChild);
+                }
+                
                 // Display historical data with Chart.js
                 if (data.actual_last_24h_kw && data.actual_last_24h_kw.length === 24) {
                     displayHistoricalDataChart(data.actual_last_24h_kw, data.predicted_next_hour_kw);

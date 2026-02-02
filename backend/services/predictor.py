@@ -49,13 +49,6 @@ class ElectricityPredictor:
             scaler_path = os.path.join(self.model_dir, 'scaler.pkl')
             self.scaler = joblib.load(scaler_path)
             
-            # SCALER SANITY CHECK
-            print("SCALER VERIFY:", type(self.scaler))
-            if hasattr(self.scaler, "n_features_in_"):
-                print("SCALER n_features_in_:", self.scaler.n_features_in_)
-            else:
-                print("SCALER n_features_in_: <missing attribute>")
-            
             # Enforce correct feature count (5 features + 1 target = 6)
             if hasattr(self.scaler, "n_features_in_") and self.scaler.n_features_in_ != 6:
                 raise ValueError(f"Scaler expects {self.scaler.n_features_in_} features, but model pipeline requires 6 (5 features + target).")
@@ -70,19 +63,9 @@ class ElectricityPredictor:
             with open(features_path, 'r') as f:
                 self.selected_features = json.load(f)
             
-            # PRD VERIFICATION: Print model input shape
-            print("\n" + "="*60)
-            print("PRD COMPLIANCE VERIFICATION - MODEL INPUT SHAPE")
-            print("="*60)
-            print(f"Model Input Shape: {self.model.input_shape}")
-            print(f"Expected Shape: (None, 24, 6)")
-            if self.model.input_shape == (None, 24, 6):
-                print("✓ PASS: Model shape matches PRD Section 11 requirements")
-            else:
-                print("✗ FAIL: Model shape does NOT match PRD requirements")
-            print("="*60 + "\n")
-            
-            print("Model artifacts loaded successfully")
+            # Validate model input shape matches PRD requirements
+            if self.model.input_shape != (None, 24, 6):
+                print(f"⚠ WARNING: Model input shape {self.model.input_shape} doesn't match expected (None, 24, 6)")
             
         except Exception as e:
             print(f"Error loading model artifacts: {e}")

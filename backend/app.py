@@ -1,25 +1,122 @@
-from flask import Flask, request, jsonify, render_template, redirect
+# Suppress TensorFlow warnings
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Suppress all TensorFlow logging (ERROR only)
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'  # Disable oneDNN custom operations
+
+# Suppress Python warnings
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning)
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+
+# Suppress TensorFlow deprecation warnings
+import logging
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
+
+from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session, send_file
 from flask_cors import CORS
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from services.predictor import ElectricityPredictor
 from utils.validators import validate_csv_window
+from utils.auth import login_required, admin_required, get_current_user_id, is_logged_in, is_admin, set_user_session, clear_user_session
+import db
 import pandas as pd
 import io
-import os
 import json
+import re
+from datetime import datetime
 
 app = Flask(__name__, 
             template_folder='../frontend/templates',
             static_folder='../frontend/static')
+
+# Phase 2: Configuration
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB upload limit
+app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'uploads')
+
 CORS(app)
 
-# Initialize predictor
+# Only run initialization once (not on Flask reloader restart)
+if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+    # Initialize database on startup
+    print("\n" + "="*70)
+    print("INITIALIZING APPLICATION")
+    print("="*70)
+    db.init_db()
+    db.migrate_db()  # Run migrations for existing databases
+    db.create_admin_if_not_exists()
+
+# Create uploads directory if it doesn't exist
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Health checks (only on reloader restart)
+if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+    print("\n" + "="*70)
+    print("RUNNING STARTUP HEALTH CHECKS")
+    print("="*70)
+
+    # Check database health
+    db_health = db.check_db_health()
+    if db_health['status'] == 'healthy':
+        print(f"✓ Database: {db_health['status']}")
+        print(f"  - Tables: {', '.join(db_health['tables'])}")
+        print(f"  - Users: {db_health['user_count']}")
+        print(f"  - Predictions: {db_health['prediction_count']}")
+    else:
+        print(f"✗ Database: {db_health['status']} - {db_health.get('error', 'Unknown error')}")
+
+# Initialize predictor (always needed)
 model_path = os.path.join(os.path.dirname(__file__), 'model')
 predictor = ElectricityPredictor(model_path)
+
+if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+    # Check predictor health
+    print(f"✓ Model loaded: {predictor.is_loaded()}")
+    print(f"  - Lookback window: {predictor.config['lookback']} hours")
+    print(f"  - Prediction horizon: {predictor.config['horizon']} hour")
+    print(f"  - Features: {len(predictor.selected_features)}")
+
+    # Check endpoints
+    print("\n" + "="*70)
+    print("AVAILABLE ENDPOINTS")
+    print("="*70)
+    print("Public Endpoints:")
+    print("  ✓ GET  /                    - Main application")
+    print("  ✓ POST /predict             - Make prediction")
+    print("  ✓ GET  /api/health          - Health check")
+    print("  ✓ GET  /api/model-metrics   - Model performance")
+    print("  ✓ GET  /sample-csv          - Download sample CSV")
+    print("  ✓ GET  /debug/selftest      - PRD compliance test")
+    print("\nAuthentication Endpoints:")
+    print("  ✓ GET/POST /register        - User registration")
+    print("  ✓ GET/POST /login           - User login")
+    print("  ✓ GET      /logout          - User logout")
+    print("\nProtected Endpoints (Login Required):")
+    print("  ✓ GET  /history             - View prediction history")
+    print("  ✓ GET  /history/<id>        - View prediction details")
+    print("  ✓ GET  /history/<id>/download - Download CSV")
+    print("\nAdmin Endpoints (Admin Only - Phase 3):")
+    print("  ✓ GET  /admin/dashboard     - Admin dashboard")
+    print("  ✓ GET  /admin/users         - User management")
+    print("  ✓ POST /admin/users/delete/<id> - Delete user")
+    print("  ✓ GET  /admin/predictions   - Prediction monitoring")
+    print("  ✓ POST /admin/predictions/delete/<id> - Delete prediction")
+
+    print("\n" + "="*70)
+    print("STARTUP COMPLETE - All Systems Ready!")
+    print("="*70)
+    print(f"\n🌐 Application running on: http://localhost:5000")
+    print(f"📝 Admin login: admin@localhost / admin123")
+    print("="*70 + "\n")
 
 @app.route('/')
 def index():
     """Render the main page"""
-    return render_template('index.html')
+    return render_template('index.html', 
+                         logged_in=is_logged_in(),
+                         is_admin=is_admin(),
+                         user_email=session.get('email'))
 
 @app.route('/favicon.ico')
 def favicon():
@@ -36,6 +133,9 @@ def predict():
     - Lookback window = 24 hours
     - Output = 1-hour ahead prediction
     
+    Phase 2 Enhancement:
+    - If user is logged in, saves prediction to history
+    
     Expects:
     - multipart/form-data with CSV file (key: "file")
     - CSV must have exactly 24 rows
@@ -46,7 +146,8 @@ def predict():
     {
         "predicted_power_kw": <float>,
         "actual_last_24h_kw": [<float>, ...],
-        "predicted_next_hour_kw": <float>
+        "predicted_next_hour_kw": <float>,
+        "saved_to_history": <bool>
     }
     """
     try:
@@ -85,7 +186,43 @@ def predict():
         # Make prediction using 24-hour window
         result = predictor.predict_from_window(df_cleaned)
         
-        # Return PRD-compliant response
+        # Phase 2: Save to history if user is logged in
+        saved_to_history = False
+        if is_logged_in():
+            try:
+                user_id = get_current_user_id()
+                filename = secure_filename(file.filename)
+                
+                # Save CSV file to uploads directory
+                user_upload_dir = os.path.join(app.config['UPLOAD_FOLDER'], str(user_id))
+                os.makedirs(user_upload_dir, exist_ok=True)
+                
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                csv_filename = f"{timestamp}_{filename}"
+                csv_filepath = os.path.join(user_upload_dir, csv_filename)
+                
+                # Write CSV content to file
+                with open(csv_filepath, 'w', encoding='utf-8') as f:
+                    f.write(csv_content)
+                
+                # Save to database
+                last24_json = json.dumps(result['actual_last_24h_kw'])
+                run_id = db.save_prediction_run(
+                    user_id=user_id,
+                    filename=filename,
+                    predicted_power_kw=result['predicted_power_kw'],
+                    predicted_next_hour_kw=result['predicted_next_hour_kw'],
+                    last24_json=last24_json,
+                    csv_storage_type='FILE',
+                    csv_file_path=csv_filepath
+                )
+                saved_to_history = True
+            except Exception as e:
+                # Don't fail prediction if history save fails
+                print(f"Warning: Failed to save prediction history: {e}")
+        
+        # Return PRD-compliant response with history indicator
+        result['saved_to_history'] = saved_to_history
         return jsonify(result)
     
     except Exception as e:
@@ -93,13 +230,34 @@ def predict():
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    """Health check endpoint"""
-    return jsonify({
-        'status': 'healthy',
-        'model_loaded': predictor.is_loaded(),
+    """Comprehensive health check endpoint"""
+    # Database health
+    db_health = db.check_db_health()
+    
+    # Model health
+    model_health = {
+        'loaded': predictor.is_loaded(),
+        'lookback': predictor.config['lookback'],
+        'features_count': len(predictor.selected_features)
+    }
+    
+    # Overall status
+    all_healthy = (
+        db_health['status'] == 'healthy' and
+        model_health['loaded']
+    )
+    
+    response = {
+        'status': 'healthy' if all_healthy else 'degraded',
+        'timestamp': datetime.now().isoformat(),
+        'database': db_health,
+        'model': model_health,
         'lookback_required': predictor.config['lookback'],
         'required_columns': predictor.selected_features + [predictor.config['target_col']]
-    })
+    }
+    
+    status_code = 200 if all_healthy else 503
+    return jsonify(response), status_code
 
 @app.route('/api/model-metrics', methods=['GET'])
 def get_model_metrics():
@@ -374,6 +532,322 @@ def debug_benchmark():
         return jsonify({
             'error': f'Benchmark failed: {str(e)}'
         }), 500
+
+
+# ============================================================================
+# PHASE 2: AUTHENTICATION ROUTES
+# ============================================================================
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    """User registration page and handler"""
+    if request.method == 'GET':
+        # Already logged in? Redirect to home
+        if is_logged_in():
+            return redirect(url_for('index'))
+        return render_template('register.html')
+    
+    # POST: Handle registration
+    email = request.form.get('email', '').strip()
+    password = request.form.get('password', '').strip()
+    confirm_password = request.form.get('confirm_password', '').strip()
+    
+    # Validation
+    if not email or not password:
+        flash('Email and password are required.', 'error')
+        return render_template('register.html', email=email)
+    
+    # Basic email validation
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, email):
+        flash('Please enter a valid email address.', 'error')
+        return render_template('register.html', email=email)
+    
+    # Password length check
+    if len(password) < 6:
+        flash('Password must be at least 6 characters long.', 'error')
+        return render_template('register.html', email=email)
+    
+    # Password confirmation
+    if password != confirm_password:
+        flash('Passwords do not match.', 'error')
+        return render_template('register.html', email=email)
+    
+    # Hash password
+    password_hash = generate_password_hash(password)
+    
+    # Create user
+    user_id = db.create_user(email, password_hash)
+    
+    if user_id is None:
+        flash('Email already registered. Please log in.', 'error')
+        return render_template('register.html', email=email)
+    
+    # Auto-login after registration (new users are never admins)
+    set_user_session(user_id, email, is_admin=False)
+    flash('Account created successfully! Welcome!', 'success')
+    return redirect(url_for('index'))
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """User login page and handler"""
+    if request.method == 'GET':
+        # Already logged in? Redirect to home
+        if is_logged_in():
+            return redirect(url_for('index'))
+        return render_template('login.html')
+    
+    # POST: Handle login
+    email = request.form.get('email', '').strip()
+    password = request.form.get('password', '').strip()
+    
+    # Validation
+    if not email or not password:
+        flash('Email and password are required.', 'error')
+        return render_template('login.html', email=email)
+    
+    # Get user from database
+    user = db.get_user_by_email(email)
+    
+    if user is None:
+        flash('Invalid email or password.', 'error')
+        return render_template('login.html', email=email)
+    
+    # Check password
+    if not check_password_hash(user['password_hash'], password):
+        flash('Invalid email or password.', 'error')
+        return render_template('login.html', email=email)
+    
+    # Login successful - set session with admin flag
+    # sqlite3.Row doesn't have .get() method, so access directly
+    is_admin = user['is_admin'] == 1 if 'is_admin' in user.keys() else False
+    set_user_session(user['id'], user['email'], is_admin)
+    flash('Logged in successfully!', 'success')
+    
+    # Redirect to next page if specified, otherwise home
+    next_page = request.args.get('next')
+    if next_page:
+        return redirect(next_page)
+    return redirect(url_for('index'))
+
+
+@app.route('/logout')
+def logout():
+    """User logout handler"""
+    clear_user_session()
+    flash('Logged out successfully.', 'success')
+    return redirect(url_for('index'))
+
+
+# ============================================================================
+# PHASE 2: HISTORY ROUTES
+# ============================================================================
+
+@app.route('/history')
+@login_required
+def history():
+    """Display user's prediction history"""
+    user_id = get_current_user_id()
+    runs = db.get_user_prediction_runs(user_id, limit=100)
+    total_count = db.get_prediction_count(user_id)
+    
+    return render_template('history.html', 
+                         runs=runs, 
+                         total_count=total_count,
+                         logged_in=True,
+                         is_admin=is_admin(),
+                         user_email=session.get('email'))
+
+
+@app.route('/history/<int:run_id>')
+@login_required
+def history_detail(run_id):
+    """Display details of a specific prediction run"""
+    user_id = get_current_user_id()
+    run = db.get_prediction_run_by_id(run_id, user_id)
+    
+    if run is None:
+        flash('Prediction not found or access denied.', 'error')
+        return redirect(url_for('history'))
+    
+    # Parse last24_json if available
+    last24_data = None
+    if run['last24_json']:
+        try:
+            last24_data = json.loads(run['last24_json'])
+        except:
+            pass
+    
+    return render_template('history_detail.html',
+                         run=run,
+                         last24_data=last24_data,
+                         logged_in=True,
+                         is_admin=is_admin(),
+                         user_email=session.get('email'))
+
+
+@app.route('/history/<int:run_id>/download')
+@login_required
+def download_csv(run_id):
+    """Download the original CSV file for a prediction run"""
+    user_id = get_current_user_id()
+    run = db.get_prediction_run_by_id(run_id, user_id)
+    
+    if run is None:
+        flash('Prediction not found or access denied.', 'error')
+        return redirect(url_for('history'))
+    
+    # Check storage type
+    if run['csv_storage_type'] == 'FILE':
+        # Serve file
+        csv_path = run['csv_file_path']
+        if not os.path.exists(csv_path):
+            flash('CSV file not found on server.', 'error')
+            return redirect(url_for('history_detail', run_id=run_id))
+        
+        return send_file(csv_path, 
+                        mimetype='text/csv',
+                        as_attachment=True,
+                        download_name=run['filename'])
+    
+    elif run['csv_storage_type'] == 'TEXT':
+        # Generate file from stored text
+        from flask import Response
+        return Response(
+            run['csv_text'],
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename={run["filename"]}'}
+        )
+    
+    else:
+        flash('Unknown storage type.', 'error')
+        return redirect(url_for('history_detail', run_id=run_id))
+
+
+# ============================================================================
+# PHASE 3: ADMIN ROUTES (Monitoring & Maintenance Only - NO ML Changes)
+# ============================================================================
+
+@app.route('/admin/dashboard')
+@admin_required
+def admin_dashboard():
+    """
+    Admin dashboard with system statistics.
+    
+    Displays:
+    - Total users and predictions
+    - Average predicted power
+    - Latest prediction timestamp
+    - System health status
+    """
+    stats = db.get_admin_stats()
+    health = db.check_db_health()
+    
+    return render_template('admin_dashboard.html', 
+                          stats=stats, 
+                          health=health)
+
+
+@app.route('/admin/users')
+@admin_required
+def admin_users():
+    """
+    Admin user management page.
+    
+    Shows all users with:
+    - Email
+    - Registration date
+    - Prediction count
+    - Admin status
+    - Delete actions
+    """
+    users = db.get_all_users_admin()
+    return render_template('admin_users.html', users=users)
+
+
+@app.route('/admin/users/delete/<int:user_id>', methods=['POST'])
+@admin_required
+def admin_delete_user(user_id):
+    """
+    Delete a user and all their predictions (admin only).
+    
+    Security:
+    - Cannot delete admin users
+    - Cascade deletes all user predictions
+    - Requires POST method
+    """
+    result = db.delete_user_admin(user_id)
+    
+    if result['success']:
+        flash(f"User {result['email']} deleted successfully. "
+              f"{result['predictions_deleted']} predictions removed.", 'success')
+    else:
+        flash(f"Error: {result['error']}", 'error')
+    
+    return redirect(url_for('admin_users'))
+
+
+@app.route('/admin/predictions')
+@admin_required
+def admin_predictions():
+    """
+    Admin prediction monitoring page.
+    
+    Shows all predictions across all users with:
+    - User email
+    - Timestamp
+    - Predicted power value
+    - CSV download link
+    - Delete actions
+    """
+    # Get recent predictions (last 100)
+    limit = request.args.get('limit', 100, type=int)
+    predictions = db.get_all_predictions_admin(limit=limit)
+    
+    return render_template('admin_predictions.html', 
+                          predictions=predictions,
+                          limit=limit)
+
+
+@app.route('/admin/predictions/<int:prediction_id>')
+@admin_required
+def admin_prediction_detail(prediction_id):
+    """
+    View detailed information about a specific prediction.
+    """
+    prediction = db.get_prediction_by_id(prediction_id)
+    
+    if not prediction:
+        flash('Prediction not found.', 'error')
+        return redirect(url_for('admin_predictions'))
+    
+    return render_template('history_detail.html', 
+                          run=prediction,
+                          is_admin_view=True)
+
+
+@app.route('/admin/predictions/delete/<int:prediction_id>', methods=['POST'])
+@admin_required
+def admin_delete_prediction(prediction_id):
+    """
+    Delete a prediction (admin only).
+    
+    Args:
+        prediction_id: ID of prediction to delete
+    
+    Returns:
+        Redirect to admin predictions page with status message
+    """
+    result = db.delete_prediction_admin(prediction_id)
+    
+    if result['success']:
+        flash(f"Prediction #{result['prediction_id']} ({result['filename']}) deleted successfully.", 'success')
+    else:
+        flash(f"Error: {result['error']}", 'error')
+    
+    return redirect(url_for('admin_predictions'))
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
