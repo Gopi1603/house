@@ -61,7 +61,17 @@ app/
 ├── PRD.md                          # Product Requirements Document
 ├── PRD2.md                         # Phase 2 Requirements (Auth + DB)
 ├── README.md                       # This file
-├── sample_input.csv                # Sample 24-hour test data
+├── sample_input.csv                # Original sample 24-hour test data
+├── sample_high_consumption.csv     # High power usage pattern (peak hours)
+├── sample_low_consumption.csv      # Low power usage pattern (night hours)
+├── sample_gradual_increase.csv     # Rising consumption pattern
+├── sample_gradual_decrease.csv     # Declining consumption pattern
+├── sample_fluctuating.csv          # Variable consumption pattern
+├── sample_moderate_steady.csv      # Stable mid-range usage
+├── sample_weekend_pattern.csv      # Weekend usage pattern
+├── sample_weekday_pattern.csv      # Weekday usage pattern
+├── sample_extreme_values.csv       # Edge case testing (valid range extremes)
+├── sample_minimal_consumption.csv  # Minimal power usage (efficient household)
 ├── backend/
 │   ├── app.py                      # Flask application with all API endpoints
 │   ├── db.py                       # 🆕 Database operations (SQLite)
@@ -371,6 +381,38 @@ SELECT * FROM prediction_runs;
 2. Modify values in the CSV (keep 24 rows!)
 3. Upload the modified CSV
 4. Get prediction
+
+### 📊 Available Sample CSV Files
+
+The repository includes **11 diverse sample CSV files** with different consumption patterns for comprehensive testing:
+
+| File Name | Description | Use Case |
+|-----------|-------------|----------|
+| `sample_input.csv` | Original sample with gradual decrease | General testing, documentation examples |
+| `sample_high_consumption.csv` | High power usage (4.5-5.2 kW) | Peak hours, heavy appliance usage |
+| `sample_low_consumption.csv` | Minimal power usage (0.4-0.5 kW) | Night hours, energy-efficient households |
+| `sample_gradual_increase.csv` | Steadily rising consumption | Morning startup, progressive appliance use |
+| `sample_gradual_decrease.csv` | Steadily declining consumption | Evening wind-down, appliances turning off |
+| `sample_fluctuating.csv` | Variable consumption pattern | Irregular usage, intermittent appliances |
+| `sample_moderate_steady.csv` | Stable mid-range usage (~2.0 kW) | Typical daytime, consistent load |
+| `sample_weekend_pattern.csv` | Weekend usage with peaks | Variable weekend activities |
+| `sample_weekday_pattern.csv` | Typical weekday pattern | Morning/evening peaks, midday dip |
+| `sample_extreme_values.csv` | Wide range within valid limits | Edge case testing, model robustness |
+| `sample_minimal_consumption.csv` | Very low consumption (0.3-0.4 kW) | Maximum efficiency, minimal usage |
+
+**All sample files:**
+- ✅ Contain exactly 24 rows (24 hours of data)
+- ✅ Have all 6 required columns
+- ✅ Use realistic values within validated ranges
+- ✅ Are ready to upload directly to the application
+
+**To use any sample file:**
+```bash
+# From the repository root
+# Upload directly via web interface, or
+curl -X POST http://localhost:5000/predict \
+  -F "file=@sample_high_consumption.csv"
+```
 
 ---
 
